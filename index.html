@@ -3,141 +3,109 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
     <meta
       name="description"
-      content="CS 180 Project 0: Becoming Friends with Your Camera"
+      content="Projects and coursework by Pranav Subbarayan"
     />
-    <title>CS 180 Project 0</title>
-    <link rel="stylesheet" href="styles.css?v=5" />
-    <script src="script.js?v=4" defer></script>
+    <title>Pranav Subbarayan</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: #1b1b1b;
+        background: #fff;
+        font-family: Arial, Helvetica, sans-serif;
+        line-height: 1.5;
+      }
+
+      main {
+        width: min(720px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 18vh 0 80px;
+      }
+
+      .name {
+        margin: 0 0 56px;
+        color: #666;
+        font-size: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(40px, 8vw, 64px);
+        letter-spacing: -0.04em;
+        line-height: 1;
+      }
+
+      .intro {
+        max-width: 500px;
+        margin: 24px 0 72px;
+        color: #555;
+        font-size: 18px;
+      }
+
+      h2 {
+        margin: 0;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #ddd;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .project {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 24px 0;
+        border-bottom: 1px solid #ddd;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .project:hover .project-title {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .project-title {
+        display: block;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .project-detail {
+        display: block;
+        margin-top: 4px;
+        color: #666;
+        font-size: 14px;
+      }
+    </style>
   </head>
   <body>
-    <header>
-      <a href="#top">CS 180</a>
-      <span>Project 0 · Fall 2026</span>
-    </header>
+    <main>
+      <p class="name">Pranav Subbarayan</p>
+      <h1>Projects</h1>
+      <p class="intro">
+        A collection of coursework, experiments, and things I have built.
+      </p>
 
-    <main id="top">
-      <section class="intro">
-        <h1>Becoming Friends with Your Camera</h1>
-      </section>
-
-      <section>
-        <div class="section-title">
-          <p class="number">01</p>
-          <div>
-            <h2>Selfie: The Wrong Way vs. The Right Way</h2>
-            <p>
-              I photographed myself first from close up 1x, then from farther
-              away 5x while zooming in to keep my face the same size.
-            </p>
-          </div>
-        </div>
-
-        <div class="image-grid two-column">
-          <figure>
-            <div class="image-box portrait">
-              <img
-                src="images/selfie1x.jpg"
-                alt="Portrait photographed from close up"
-                onerror="this.classList.add('is-missing')"
-              />
-              <p class="placeholder">images/selfie1x.jpg</p>
-            </div>
-            <figcaption>Close up, no zoom</figcaption>
-          </figure>
-          <figure>
-            <div class="image-box portrait">
-              <img
-                src="images/selfie5x.JPG"
-                alt="Portrait photographed from farther away with zoom"
-                onerror="this.classList.add('is-missing')"
-              />
-              <p class="placeholder">images/selfie5x.JPG</p>
-            </div>
-            <figcaption>Farther away, zoomed in</figcaption>
-          </figure>
-        </div>
-
-      </section>
-
-      <section>
-        <div class="section-title">
-          <p class="number">02</p>
-          <div>
-            <h2>Architectural Perspective Compression</h2>
-          </div>
-        </div>
-
-        <div class="image-grid two-column">
-          <figure>
-            <figcaption class="caption-above">
-              <span>1× — Up Close</span>
-              <span class="caption-note">
-                From up close, the side of the building stretches into the
-                distance.
-              </span>
-            </figcaption>
-            <div class="image-box landscape">
-              <img
-                src="images/architectural_close.jpg"
-                alt="Building photographed up close without zoom"
-                onerror="this.classList.add('is-missing')"
-              />
-              <p class="placeholder">images/architectural_close.jpg</p>
-            </div>
-          </figure>
-          <figure>
-            <figcaption class="caption-above">
-              <span>2× — Farther Back</span>
-              <span class="caption-note">
-                After stepping back and zooming in, the Berkeley sign looks more compressed, and the background appears closer.
-              </span>
-            </figcaption>
-            <div class="image-box landscape">
-              <img
-                src="images/architectural_far_zoom.jpg?v=2"
-                alt="Building photographed from far away at 2x zoom"
-                onerror="this.classList.add('is-missing')"
-              />
-              <p class="placeholder">images/architectural_far_zoom.jpg</p>
-            </div>
-          </figure>
-        </div>
-      </section>
-
-      <section>
-        <div class="section-title">
-          <p class="number">03</p>
-          <div>
-            <h2>Dolly Zoom</h2>
-            <p>
-              I moved backward while zooming in, adjusting the focal length in
-              each frame to keep the main subject roughly the same size.
-            </p>
-          </div>
-        </div>
-
-        <figure class="dolly-figure">
-          <div class="image-box dolly">
-            <img
-              src="images/dolly-zoom.gif?v=10"
-              alt="Animated dolly zoom sequence"
-              onerror="this.classList.add('is-missing')"
-            />
-            <p class="placeholder">images/dolly-zoom.gif</p>
-          </div>
-          <figcaption>gummy bear migration •ﻌ•</figcaption>
-        </figure>
+      <section aria-labelledby="project-list">
+        <h2 id="project-list">Selected work</h2>
+        <a class="project" href="./cs180/">
+          <span>
+            <span class="project-title">CS 180</span>
+            <span class="project-detail">
+              Computer Vision and Computational Photography
+            </span>
+          </span>
+          <span aria-hidden="true">→</span>
+        </a>
       </section>
     </main>
-
-    <footer>
-      <p>UC Berkeley · CS 180</p>
-      <a href="#top">Back to top ↑</a>
-    </footer>
   </body>
 </html>
