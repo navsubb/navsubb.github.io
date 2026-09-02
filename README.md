@@ -1,11 +1,10 @@
-# Pranav Subbarayan's project portfolio
+# CS 180 project portfolio
 
-A GitHub Pages portfolio containing coursework and other projects.
+A GitHub Pages portfolio for CS 180 coursework.
 
 ## Structure
 
-- `/` — personal project index
-- `/cs180/` — CS 180 course portfolio
+- `/` — CS 180 course portfolio
 - `/cs180/proj0/` — Project 0: Becoming Friends with Your Camera
 
 ## Preview locally
@@ -19,7 +18,6 @@ python3 -m http.server 8000
 Then open:
 
 - <http://localhost:8000/>
-- <http://localhost:8000/cs180/>
 - <http://localhost:8000/cs180/proj0/>
 
 ## Export the required PDF
