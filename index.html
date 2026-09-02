@@ -17,9 +17,12 @@
         margin: 0;
         color: #111;
         background: #fff;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+          sans-serif;
         font-size: 14px;
         line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
       }
 
       main {
@@ -29,42 +32,33 @@
       }
 
       header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 32px;
+        display: block;
       }
 
       h1 {
         margin: 0;
-        font-size: 30px;
-        font-weight: 600;
-        letter-spacing: -0.03em;
-      }
-
-      .course-name {
-        margin: 6px 0 0;
-        color: #666;
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
       }
 
       .meta {
-        margin: 6px 0 0;
+        margin: 10px 0 0;
         color: #666;
-        text-align: right;
-        white-space: nowrap;
       }
 
       nav {
-        margin-top: 120px;
+        margin-top: 104px;
+        border-top: 1px solid #ddd;
         border-bottom: 1px solid #ddd;
       }
 
       a {
         display: grid;
+        width: 100%;
         grid-template-columns: 90px 1fr;
         gap: 20px;
         padding: 18px 0;
-        border-top: 1px solid #ddd;
         color: inherit;
         text-decoration: none;
       }
@@ -83,15 +77,6 @@
           padding-top: 64px;
         }
 
-        header {
-          display: block;
-        }
-
-        .meta {
-          margin-top: 24px;
-          text-align: left;
-        }
-
         nav {
           margin-top: 80px;
         }
@@ -105,10 +90,8 @@
   <body>
     <main>
       <header>
-        <div>
-          <h1>CS 180</h1>
-        </div>
-        <p class="meta">Pranav Subbarayan<br />Fall 2026</p>
+        <h1>CS 180, Fall 2026</h1>
+        <p class="meta">Pranav Subbarayan</p>
       </header>
 
       <nav aria-label="Course projects">
