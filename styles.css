@@ -61,11 +61,10 @@ footer a:hover {
 }
 
 .intro {
-  padding: 96px 0 104px;
+  padding: 64px 0 48px;
 }
 
 .label,
-.byline,
 .number,
 figcaption {
   color: var(--muted);
@@ -86,10 +85,6 @@ h1 {
   font-weight: 500;
   letter-spacing: -0.025em;
   line-height: 1.15;
-}
-
-.byline {
-  margin: 24px 0 0;
 }
 
 main > section:not(.intro) {
@@ -188,6 +183,14 @@ figcaption {
   padding-top: 8px;
 }
 
+.caption-above {
+  padding: 0 0 12px;
+}
+
+.caption-above .caption-note {
+  max-width: none;
+}
+
 .caption-note {
   display: block;
   max-width: 42ch;
@@ -237,7 +240,7 @@ footer p {
   }
 
   .intro {
-    padding: 64px 0 72px;
+    padding: 48px 0 40px;
   }
 
   main > section:not(.intro) {
