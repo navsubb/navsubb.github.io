@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="CS 180 Project 0 — an exploration of perspective, focal length, and the dolly zoom."
+    />
+    <title>Becoming Friends with Your Camera — CS 180 Project 0</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="course-mark" href="#top" aria-label="Back to top">
+        <span class="course-dot" aria-hidden="true"></span>
+        <span>UC Berkeley · CS 180</span>
+      </a>
+      <nav aria-label="Project sections">
+        <a href="#portraits">Portraits</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#dolly-zoom">Dolly zoom</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <p class="eyebrow">Programming Project #0 · Fall 2026</p>
+        <h1>Becoming friends<br />with your <em>camera.</em></h1>
+        <p class="hero-copy">
+          An exploration of how camera position and focal length transform
+          perspective—one portrait, one building, and one cinematic illusion
+          at a time.
+        </p>
+        <a class="scroll-cue" href="#portraits">
+          <span>Explore the experiments</span>
+          <span aria-hidden="true">↓</span>
+        </a>
+      </section>
+
+      <section class="intro section-shell" aria-labelledby="intro-title">
+        <p class="section-number">00 / Introduction</p>
+        <div class="intro-grid">
+          <h2 id="intro-title">Same subject.<br />Different perspective.</h2>
+          <div class="body-copy">
+            <p>
+              A zoom lens changes how large a subject appears in the frame, but
+              camera position determines perspective. Across three experiments,
+              I kept subject size roughly constant while changing my distance
+              and focal length.
+            </p>
+            <p>
+              The results reveal that “zooming in” and “moving closer” are not
+              interchangeable: each changes the spatial relationships captured
+              by the image in a distinct way.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="project-section section-shell" id="portraits">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">01 / Portrait Perspective</p>
+            <h2>The wrong way<br />vs. the right way.</h2>
+          </div>
+          <p class="section-summary">
+            Moving farther away and zooming in produces a more natural-looking
+            portrait, even when the face occupies the same amount of the frame.
+          </p>
+        </div>
+
+        <div class="comparison">
+          <figure class="photo-card">
+            <div class="photo-frame portrait">
+              <img
+                src="images/portrait-close.jpg"
+                alt="Close-up portrait taken with a wide field of view"
+              />
+              <div class="image-placeholder">
+                <span>01A</span>
+                <p>Add <strong>images/portrait-close.jpg</strong></p>
+              </div>
+            </div>
+            <figcaption>
+              <span>Close up</span>
+              <span>Wide · distorted</span>
+            </figcaption>
+          </figure>
+
+          <figure class="photo-card offset">
+            <div class="photo-frame portrait">
+              <img
+                src="images/portrait-zoom.jpg"
+                alt="Portrait taken from farther away with optical zoom"
+              />
+              <div class="image-placeholder">
+                <span>01B</span>
+                <p>Add <strong>images/portrait-zoom.jpg</strong></p>
+              </div>
+            </div>
+            <figcaption>
+              <span>Stepped back</span>
+              <span>Zoomed · natural</span>
+            </figcaption>
+          </figure>
+        </div>
+
+        <aside class="observation">
+          <p class="observation-label">Observation</p>
+          <p>
+            Up close, the parts of the face nearest the camera—especially the
+            nose—appear disproportionately large. Stepping back reduces these
+            relative distance differences. Zoom then restores the face to the
+            same size in the frame without reintroducing that distortion.
+          </p>
+        </aside>
+      </section>
+
+      <section class="project-section architecture-section" id="architecture">
+        <div class="section-shell">
+          <div class="section-heading light">
+            <div>
+              <p class="section-number">02 / Architectural Perspective</p>
+              <h2>Depth, flattened.</h2>
+            </div>
+            <p class="section-summary">
+              A distant, zoomed view compresses the scene. Moving closer with a
+              wider field of view makes depth and converging lines more
+              pronounced.
+            </p>
+          </div>
+
+          <div class="wide-comparison">
+            <figure class="photo-card">
+              <div class="photo-frame landscape dark-frame">
+                <img
+                  src="images/building-zoom.jpg"
+                  alt="Building photographed from far away with zoom"
+                />
+                <div class="image-placeholder">
+                  <span>02A</span>
+                  <p>Add <strong>images/building-zoom.jpg</strong></p>
+                </div>
+              </div>
+              <figcaption>
+                <span>Far away + zoomed</span>
+                <span>Compressed</span>
+              </figcaption>
+            </figure>
+
+            <figure class="photo-card">
+              <div class="photo-frame landscape dark-frame">
+                <img
+                  src="images/building-close.jpg"
+                  alt="Building photographed from nearby without zoom"
+                />
+                <div class="image-placeholder">
+                  <span>02B</span>
+                  <p>Add <strong>images/building-close.jpg</strong></p>
+                </div>
+              </div>
+              <figcaption>
+                <span>Walked closer + wide</span>
+                <span>Expanded</span>
+              </figcaption>
+            </figure>
+          </div>
+
+          <aside class="observation light-observation">
+            <p class="observation-label">Observation</p>
+            <p>
+              From farther away, distances within the scene are small relative
+              to the camera-to-building distance, so foreground and background
+              elements appear closer in size. Up close, those distance ratios
+              grow and the facade recedes more dramatically.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="project-section section-shell" id="dolly-zoom">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">03 / The Dolly Zoom</p>
+            <h2>Motion without<br />movement.</h2>
+          </div>
+          <p class="section-summary">
+            Moving backward while zooming in keeps the subject fixed but
+            reshapes the world around it—the classic “Vertigo” effect.
+          </p>
+        </div>
+
+        <figure class="dolly-feature">
+          <div class="photo-frame dolly">
+            <img
+              src="images/dolly-zoom.gif"
+              alt="Animated dolly zoom sequence"
+            />
+            <div class="image-placeholder">
+              <span>03</span>
+              <p>Add <strong>images/dolly-zoom.gif</strong></p>
+            </div>
+          </div>
+          <figcaption>
+            <span>Dolly zoom study</span>
+            <span>Multiple frames · animated GIF</span>
+          </figcaption>
+        </figure>
+
+        <div class="dolly-notes">
+          <p class="pull-quote">
+            “The subject stays still while the background seems to breathe.”
+          </p>
+          <div class="body-copy">
+            <p>
+              For each frame, I moved the camera farther from the subject and
+              increased the zoom enough to preserve the subject’s apparent
+              size. The changing camera position alters perspective, while the
+              changing focal length compensates for scale.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="takeaway">
+        <div class="section-shell takeaway-inner">
+          <p class="section-number">Final takeaway</p>
+          <p class="takeaway-text">
+            Focal length controls <em>framing.</em><br />
+            Camera position controls <em>perspective.</em>
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>CS 180 · Intro to Computer Vision and Computational Photography</p>
+      <p>Project by <span class="student-name">Your Name</span> · 2026</p>
+    </footer>
+  </body>
+</html>
