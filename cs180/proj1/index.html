@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CS 180 Project 1 by Pranav Subbarayan: colorizing Prokudin-Gorskii glass plates with NCC and coarse-to-fine alignment." />
+    <title>CS 180 Project 1 — Pranav Subbarayan</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <a href="../../">← CS 180</a>
+      <span>Project 1 · Fall 2026</span>
+    </header>
+    <main id="top">
+      <section class="intro" aria-labelledby="project-title">
+        <h1 id="project-title">Colorizing the Prokudin-Gorskii Collection</h1>
+        <p class="intro-copy">For this project, I combined three grayscale exposures into a color image by finding the shifts that line up their details.</p>
+      </section>
+
+      <section id="approach">
+        <div class="section-title"><h2>Approach</h2></div>
+        <div class="prose">
+          <p>Each scan contains three separate exposures stacked in <strong>B, G, R</strong> order. Their positions differ slightly, so combining them directly creates colored outlines.</p>
+          <p>I convert the scan to floating-point values in [0, 1], split it into three equal-height channels, and use blue as the reference. After finding the shifts for green and red, I stack the aligned channels in <strong>R, G, B</strong> order.</p>
+        </div>
+        <div class="channel-flow" aria-label="Processing sequence">
+          <div><span class="step-label">Input</span><strong>Stacked B · G · R</strong></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div><span class="step-label">Alignment</span><strong>G → B &amp; R → B</strong></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div><span class="step-label">Output</span><strong>Combined R · G · B</strong></div>
+        </div>
+        <div class="prose">
+          <h3>How I compare two channels</h3>
+          <p>I first tried squared L2 distance, Σ(A − B)², which chooses the shift with the smallest sum of squared pixel differences. All final results use <strong>normalized cross-correlation (NCC)</strong>. NCC subtracts each region’s mean and normalizes its magnitude, making the comparison less sensitive to overall brightness and contrast differences.</p>
+          <div class="formula" role="math" aria-label="Normalized cross-correlation equals the dot product of mean-centered images divided by the product of their norms">
+            NCC(A, B) = Σ[(A − μ<sub>A</sub>)(B − μ<sub>B</sub>)] / √[Σ(A − μ<sub>A</sub>)² · Σ(B − μ<sub>B</sub>)²]
+          </div>
+          <p>A and B are the channel regions being compared, μ is each region’s mean, and the sums run over their pixels. I choose the shift with the highest NCC score.</p>
+          <h3>Ignoring the borders</h3>
+          <p>At every scale, I exclude 10% from each side when scoring a shift to reduce interference from scan borders and wrapped pixels. The saved images keep their full dimensions, so colored borders remain.</p>
+        </div>
+      </section>
+
+      <section id="single-scale">
+        <div class="section-title"><h2>Single-scale alignment</h2></div>
+        <div class="prose">
+          <p>For each green and red channel, I try every shift from <strong>−15 to 15 pixels</strong> on both axes: 961 candidates. I apply each shift with <code>np.roll</code>, compare its interior against blue, and keep the highest-scoring match.</p>
+          <p>This aligns all three small JPEGs. Cathedral’s tower and foreground roofs show the improvement below.</p>
+        </div>
+        <p class="coordinate-note">Offsets are <strong>(x, y)</strong> in pixels: positive x moves right and positive y moves down. G and R are shifts relative to blue. Click any image for full resolution.</p>
+        <div class="experiment">
+        <h3>Cathedral, before and after</h3>
+        <div class="image-grid comparison-grid">
+          <figure>
+            <a class="image-link" href="images/unaligned_cathedral.jpg" aria-label="Open unaligned Cathedral">
+              <img src="images/unaligned_cathedral.jpg" alt="Cathedral before alignment, with separated colored outlines along roofs and the cathedral tower" loading="lazy" decoding="async" width="390" height="341" />
+            </a>
+            <figcaption><span class="result-title">Before: direct RGB stack</span><span class="offsets">G (0, 0) · R (0, 0)</span></figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_cathedral.jpg" aria-label="Open Cathedral after single-scale NCC alignment">
+              <img src="images/aligned_cathedral.jpg" alt="Cathedral after single-scale NCC alignment, with roof and tower outlines brought together" loading="lazy" decoding="async" width="390" height="341" />
+            </a>
+            <figcaption><span class="result-title">After: single-scale NCC</span><span class="offsets">G (2, 5) · R (3, 12)</span></figcaption>
+          </figure>
+        </div>
+        </div>
+        <h3 class="gallery-heading">Monastery and Tobolsk</h3>
+        <div class="image-grid">
+          <figure>
+            <a class="image-link" href="images/aligned_monastery.jpg" aria-label="Open full-resolution Monastery result">
+              <img src="images/aligned_monastery.jpg" alt="Monastery: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="391" height="341" />
+            </a>
+            <figcaption><span class="result-title">Monastery</span>
+              <span class="offsets">G (2, -3) · R (2, 3)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_tobolsk.jpg" aria-label="Open full-resolution Tobolsk result">
+              <img src="images/aligned_tobolsk.jpg" alt="Tobolsk: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="396" height="341" />
+            </a>
+            <figcaption><span class="result-title">Tobolsk</span>
+              <span class="offsets">G (3, 3) · R (3, 6)</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section id="pyramid">
+        <div class="section-title"><h2>Image pyramid</h2></div>
+        <div class="prose">
+          <p>The TIFFs need much larger shifts. An image pyramid makes the search faster by finding the rough alignment on smaller images, then refining it at larger sizes:</p>
+          <ol class="method-steps">
+            <li>Resize both channels to half their size, with anti-aliasing. Repeat until the largest dimension is below <strong>400 pixels</strong>.</li>
+            <li>Run the <strong>±15-pixel</strong> search on the smallest images.</li>
+            <li>Return to the next larger size, double the offset, and shift the moving channel by that amount.</li>
+            <li>Search <strong>±2 pixels</strong> around this estimate. Add that correction to the offset and repeat until reaching full resolution.</li>
+          </ol>
+          <p>Halving the image roughly halves the shift to find. Each finer level then checks only 25 nearby shifts per channel. I implemented this recursion in <code>pyramid_align</code>, using scikit-image for resizing and NumPy for the search. I use these settings and NCC on channel pixels for all seventeen images.</p>
+        </div>
+        <div class="experiment">
+        <h3>Melons: adding one more level</h3>
+        <p class="comparison-note">With a 500-pixel stopping threshold, melons’ 178-pixel red shift is still about 22 pixels at the smallest scale, outside the ±15 window. Lowering the threshold to 400 adds a level and reduces that shift to about 11 pixels. Both runs use NCC.</p>
+        <div class="image-grid comparison-grid">
+          <figure>
+            <a class="image-link" href="images/melons_ncc_threshold500.jpg" aria-label="Open Melons with the shallower NCC pyramid">
+              <img src="images/melons_ncc_threshold500.jpg" alt="Melons with a 500-pixel pyramid threshold, showing displaced red outlines around the man and melon piles" loading="lazy" decoding="async" width="3770" height="3241" />
+            </a>
+            <figcaption><span class="result-title">Before: NCC, threshold 500</span><span class="offsets">G (11, 82) · R (13, 134)</span></figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_melons.jpg" aria-label="Open Melons with the final NCC pyramid">
+              <img src="images/aligned_melons.jpg" alt="Melons with the final 400-pixel threshold, bringing the man's silhouette and melon piles into alignment" loading="lazy" decoding="async" width="3770" height="3241" />
+            </a>
+            <figcaption><span class="result-title">After: NCC, threshold 400</span><span class="offsets">G (11, 82) · R (13, 178)</span></figcaption>
+          </figure>
+        </div>
+        <p class="comparison-note">The extra level brings the roof, the man, and the melon piles into alignment.</p>
+        </div>
+        <div class="experiment">
+        <h3>Church: switching from L2 to NCC</h3>
+        <p class="comparison-note">L2 shifts church’s red channel too far right, creating a second building outline. NCC fixes the match. Only the metric changes here; both runs use the final pyramid settings.</p>
+        <div class="image-grid comparison-grid">
+          <figure>
+            <a class="image-link" href="images/church_l2.jpg" aria-label="Open Church with squared L2 alignment">
+              <img src="images/church_l2.jpg" alt="Church aligned with squared L2, showing a red-channel copy shifted far to the right of the building" loading="lazy" decoding="async" width="3634" height="3202" />
+            </a>
+            <figcaption><span class="result-title">Before: squared L2, threshold 400</span><span class="offsets">G (4, 25) · R (267, 64)</span></figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_church.jpg" aria-label="Open Church with final NCC alignment">
+              <img src="images/aligned_church.jpg" alt="Church aligned with NCC, with the roof, tower, and building edges brought together" loading="lazy" decoding="async" width="3634" height="3202" />
+            </a>
+            <figcaption><span class="result-title">After: NCC, threshold 400</span><span class="offsets">G (4, 25) · R (-4, 58)</span></figcaption>
+          </figure>
+        </div>
+        </div>
+      </section>
+
+      <section id="results">
+        <div class="section-title"><h2>Full-resolution results</h2></div>
+        <div class="prose">
+          <p>These ten supplied TIFFs aligned well at their original resolution. <a href="#failure">Emir’s failed result</a> is shown separately below.</p>
+          <p>The pyramid also produces identical results for the <a href="#single-scale">three small JPEGs</a>: they are already below 400 pixels, so it uses the single-scale base case. Together, these cover all fourteen supplied images.</p>
+        </div>
+        <div class="image-grid">
+          <figure>
+            <a class="image-link" href="images/aligned_church.jpg" aria-label="Open full-resolution Church result">
+              <img src="images/aligned_church.jpg" alt="Church: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3634" height="3202" />
+            </a>
+            <figcaption><span class="result-title">Church</span>
+              <span class="offsets">G (4, 25) · R (-4, 58)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_harvesters.jpg" aria-label="Open full-resolution Harvesters result">
+              <img src="images/aligned_harvesters.jpg" alt="Harvesters: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3683" height="3218" />
+            </a>
+            <figcaption><span class="result-title">Harvesters</span>
+              <span class="offsets">G (17, 60) · R (13, 124)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_icon.jpg" aria-label="Open full-resolution Icon result">
+              <img src="images/aligned_icon.jpg" alt="Icon: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3741" height="3244" />
+            </a>
+            <figcaption><span class="result-title">Icon</span>
+              <span class="offsets">G (17, 41) · R (23, 89)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_ilemselga.jpg" aria-label="Open full-resolution Ilemselga result">
+              <img src="images/aligned_ilemselga.jpg" alt="Ilemselga: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3800" height="3270" />
+            </a>
+            <figcaption><span class="result-title">Ilemselga</span>
+              <span class="offsets">G (7, 40) · R (11, 130)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_melons.jpg" aria-label="Open full-resolution Melons result">
+              <img src="images/aligned_melons.jpg" alt="Melons: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3770" height="3241" />
+            </a>
+            <figcaption><span class="result-title">Melons</span>
+              <span class="offsets">G (11, 82) · R (13, 178)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_religous_painting.jpg" aria-label="Open full-resolution Religious painting result">
+              <img src="images/aligned_religous_painting.jpg" alt="Religious painting: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3742" height="3193" />
+            </a>
+            <figcaption><span class="result-title">Religious painting</span>
+              <span class="offsets">G (3, 28) · R (7, 68)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_self_portrait.jpg" aria-label="Open full-resolution Self portrait result">
+              <img src="images/aligned_self_portrait.jpg" alt="Self portrait: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3810" height="3251" />
+            </a>
+            <figcaption><span class="result-title">Self portrait</span>
+              <span class="offsets">G (29, 79) · R (37, 176)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_siren.jpg" aria-label="Open full-resolution Siren result">
+              <img src="images/aligned_siren.jpg" alt="Siren: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3817" height="3250" />
+            </a>
+            <figcaption><span class="result-title">Siren</span>
+              <span class="offsets">G (-6, 49) · R (-25, 96)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_three_generations.jpg" aria-label="Open full-resolution Three generations result">
+              <img src="images/aligned_three_generations.jpg" alt="Three generations: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3714" height="3209" />
+            </a>
+            <figcaption><span class="result-title">Three generations</span>
+              <span class="offsets">G (14, 53) · R (11, 112)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_wharf.jpg" aria-label="Open full-resolution Wharf result">
+              <img src="images/aligned_wharf.jpg" alt="Wharf: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3761" height="3244" />
+            </a>
+            <figcaption><span class="result-title">Wharf</span>
+              <span class="offsets">G (-7, 15) · R (-16, 83)</span>
+            </figcaption>
+          </figure>
+        </div>
+        <h3 class="table-heading">Offsets for all fourteen supplied images</h3>
+        <div class="table-wrap">
+          <table>
+            <caption>Translations relative to blue, in full-resolution pixels</caption>
+            <thead><tr><th scope="col">Image</th><th scope="col">Green (x, y)</th><th scope="col">Red (x, y)</th><th scope="col">Method / result</th></tr></thead>
+            <tbody>
+            <tr><th scope="row">Cathedral</th><td>(2, 5)</td><td>(3, 12)</td><td>Single-scale / pyramid base case</td></tr>
+            <tr><th scope="row">Monastery</th><td>(2, -3)</td><td>(2, 3)</td><td>Single-scale / pyramid base case</td></tr>
+            <tr><th scope="row">Tobolsk</th><td>(3, 3)</td><td>(3, 6)</td><td>Single-scale / pyramid base case</td></tr>
+            <tr><th scope="row">Church</th><td>(4, 25)</td><td>(-4, 58)</td><td>Pyramid</td></tr>
+            <tr class="failed-row"><th scope="row"><a href="#failure">Emir</a></th><td>(24, 49)</td><td>(-205, 141)</td><td>Pyramid / failed</td></tr>
+            <tr><th scope="row">Harvesters</th><td>(17, 60)</td><td>(13, 124)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Icon</th><td>(17, 41)</td><td>(23, 89)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Ilemselga</th><td>(7, 40)</td><td>(11, 130)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Melons</th><td>(11, 82)</td><td>(13, 178)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Religious painting</th><td>(3, 28)</td><td>(7, 68)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Self portrait</th><td>(29, 79)</td><td>(37, 176)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Siren</th><td>(-6, 49)</td><td>(-25, 96)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Three generations</th><td>(14, 53)</td><td>(11, 112)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Wharf</th><td>(-7, 15)</td><td>(-16, 83)</td><td>Pyramid</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="failure">
+        <div class="section-title"><h2>Where alignment failed: Emir</h2></div>
+        <div class="failure-layout">
+          <figure>
+            <a class="image-link" href="images/aligned_emir.jpg" aria-label="Open the full-resolution Emir alignment failure">
+              <img src="images/aligned_emir.jpg" alt="Emir with a displaced red exposure, creating a second face and colored outlines across his clothing" loading="lazy" decoding="async" width="3702" height="3209" />
+            </a>
+            <figcaption><span class="result-title">Emir — final NCC result</span>
+              <span class="offsets">G (24, 49) · R (-205, 141)</span>
+            </figcaption>
+          </figure>
+          <div class="prose">
+            <p>Emir is the one clear failure. The red channel shifts too far left and down, creating a second face and colored outlines across his clothing.</p>
+            <p>The likely cause is the clothing’s different brightness across the exposures. NCC handles overall brightness changes, but individual colors can change differently under each filter. A wrong coarse match can therefore score well, and the ±2-pixel refinement cannot recover from it. Comparing edges would be a possible next step.</p>
+          </div>
+        </div>
+        <div class="prose scope-note">
+          <h3>Remaining artifacts</h3>
+          <p>Scan marks and movement between exposures still cause some local artifacts. I did not implement optional bells and whistles, such as automatic cropping or color correction.</p>
+        </div>
+      </section>
+
+      <section id="additional">
+        <div class="section-title"><h2>Three additional images</h2></div>
+        <div class="prose">
+          <p>I downloaded these three TIFF scans from the Library of Congress collection and aligned them at full resolution with the same NCC pyramid settings. Each result links to its source.</p>
+        </div>
+        <div class="image-grid additional-grid">
+          <figure>
+            <a class="image-link" href="images/aligned_Bashkir%20near%20his%20house.jpg" aria-label="Open full-resolution Bashkir near his house result">
+              <img src="images/aligned_Bashkir%20near%20his%20house.jpg" alt="Bashkir near his house: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3770" height="3251" />
+            </a>
+            <figcaption>
+              <a class="source-link" href="https://hdl.loc.gov/loc.pnp/prok.00661">Original scan ↗</a>
+              <span class="result-title">Bashkir near his house</span>
+              <span class="offsets">G (-4, 57) · R (-11, 113)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_Leushinskii%20women%27s%20school..jpg" aria-label="Open full-resolution Leushinskii women’s school result">
+              <img src="images/aligned_Leushinskii%20women%27s%20school..jpg" alt="Leushinskii women’s school: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3751" height="3215" />
+            </a>
+            <figcaption>
+              <a class="source-link" href="https://hdl.loc.gov/loc.pnp/prok.01001">Original scan ↗</a>
+              <span class="result-title">Leushinskii women’s school</span>
+              <span class="offsets">G (16, 31) · R (23, 79)</span>
+            </figcaption>
+          </figure>
+          <figure>
+            <a class="image-link" href="images/aligned_Mills.jpg" aria-label="Open full-resolution Mills result">
+              <img src="images/aligned_Mills.jpg" alt="Mills: color image reconstructed from aligned exposures" loading="lazy" decoding="async" width="3742" height="3225" />
+            </a>
+            <figcaption>
+              <a class="source-link" href="https://hdl.loc.gov/loc.pnp/prok.00859">Original scan ↗</a>
+              <span class="result-title">Mills</span>
+              <span class="offsets">G (14, 56) · R (23, 125)</span>
+            </figcaption>
+          </figure>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <caption>Displacements for the three additional plates, in full-resolution pixels</caption>
+            <thead><tr><th scope="col">Image</th><th scope="col">Green (x, y)</th><th scope="col">Red (x, y)</th><th scope="col">Method</th></tr></thead>
+            <tbody>
+            <tr><th scope="row">Bashkir near his house</th><td>(-4, 57)</td><td>(-11, 113)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Leushinskii women’s school</th><td>(16, 31)</td><td>(23, 79)</td><td>Pyramid</td></tr>
+            <tr><th scope="row">Mills</th><td>(14, 56)</td><td>(23, 125)</td><td>Pyramid</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <footer><p>Pranav Subbarayan</p><a href="#top">Back to top ↑</a></footer>
+  </body>
+</html>
