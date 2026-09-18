@@ -4,7 +4,8 @@ A GitHub Pages portfolio for CS 180 coursework.
 
 ## Structure
 
-- `/` — CS 180 course portfolio
+- `/` — Original CS 180 course portfolio (kept during migration)
+- `/cs180/` — CS 180 course portfolio
 - `/cs180/proj0/` — Project 0: Becoming Friends with Your Camera
 - `/cs180/proj1/` — Project 1: Colorizing the Prokudin-Gorskii Collection
 
@@ -19,6 +20,7 @@ python3 -m http.server 8000
 Then open:
 
 - <http://localhost:8000/>
+- <http://localhost:8000/cs180/>
 - <http://localhost:8000/cs180/proj0/>
 - <http://localhost:8000/cs180/proj1/>
 

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Pranav Subbarayan's CS 180 project portfolio"
+    />
+    <title>CS 180 — Pranav Subbarayan</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: #111;
+        background: #fff;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        width: min(640px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 14vh 0 80px;
+      }
+
+      header {
+        display: block;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+      }
+
+      .meta {
+        margin: 10px 0 0;
+        color: #666;
+      }
+
+      nav {
+        margin-top: 104px;
+        border-top: 1px solid #ddd;
+        border-bottom: 1px solid #ddd;
+      }
+
+      a {
+        display: grid;
+        width: 100%;
+        grid-template-columns: 90px 1fr;
+        gap: 20px;
+        padding: 18px 0;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .project-number {
+        color: #777;
+      }
+
+      a:hover .project-title {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      @media (max-width: 480px) {
+        main {
+          padding-top: 64px;
+        }
+
+        nav {
+          margin-top: 80px;
+        }
+
+        a {
+          grid-template-columns: 72px 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>CS 180, Fall 2026</h1>
+        <p class="meta">Pranav Subbarayan</p>
+      </header>
+
+      <nav aria-label="Course projects">
+        <a href="./proj1/">
+          <span class="project-number">Project 1</span>
+          <span class="project-title">Colorizing the Prokudin-Gorskii Collection</span>
+        </a>
+        <a href="./proj0/">
+          <span class="project-number">Project 0</span>
+          <span class="project-title">Becoming Friends with Your Camera</span>
+        </a>
+      </nav>
+    </main>
+  </body>
+</html>
