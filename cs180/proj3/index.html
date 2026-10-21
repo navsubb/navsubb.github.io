@@ -365,9 +365,16 @@
   <p>I generate <strong>four instances of each digit</strong> using <strong>300 Euler steps</strong> and <strong>seed 0</strong> at each checkpoint. At every step, I combine predictions with and without the class label using guidance scale <strong>γ = 5</strong>:</p>
 </div>
 <div class="formula" role="math" aria-label="Guided velocity equals unconditional velocity plus gamma times the conditional minus unconditional velocity">v<sub>CFG</sub> = v<sub>uncond</sub> + γ(v<sub>cond</sub> − v<sub>uncond</sub>)</div>
-<p class="figure-note">Columns correspond to digits 0–9.</p>
+<div class="prose">
+  <p>I reuse the same 40 initial noise images in all four grids. Comparing the same row and column across grids shows how the output changes with training or without the scheduler.</p>
+</div>
 <figure class="result-figure">
   <a class="image-link" href="images/partb/class_samples_1.png" aria-label="Open full-resolution image: Class-conditioned samples after epoch 1: four instances of each digit from 0 to 9"><img src="images/partb/class_samples_1.png" alt="Class-conditioned samples after epoch 1: four instances of each digit from 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
+  <figcaption>
+    <span class="result-detail"><strong>Columns:</strong> Requested digits 0–9, left to right.</span>
+    <span class="result-detail"><strong>Rows:</strong> Four generated examples of each digit, starting from different noise inputs.</span>
+    <span class="result-detail">This layout applies to all four grids; every tile is a generated output.</span>
+  </figcaption>
 </figure>
 <figure class="result-figure">
   <a class="image-link" href="images/partb/class_samples_5.png" aria-label="Open full-resolution image: Class-conditioned samples after epoch 5: four instances of each digit from 0 to 9"><img src="images/partb/class_samples_5.png" alt="Class-conditioned samples after epoch 5: four instances of each digit from 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
@@ -376,7 +383,7 @@
   <a class="image-link" href="images/partb/class_samples_10.png" aria-label="Open full-resolution image: Class-conditioned samples after epoch 10: four instances of each digit from 0 to 9"><img src="images/partb/class_samples_10.png" alt="Class-conditioned samples after epoch 10: four instances of each digit from 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
 </figure>
 <div class="prose">
-  <p>After epoch 1, many digits are recognizable, but several have thick, irregular strokes, especially the 8s. By epoch 5, the requested classes are much clearer. Epoch 10 retains that clarity while showing variations in stroke width, slant, and loop shape.</p>
+  <p>The largest visible improvement is from epoch 1 to epoch 5: the broken 5s become more complete, and the thick, irregular 8s develop clearer loops. Changes from epoch 5 to epoch 10 are smaller. Within each column, the four outputs share the requested digit and show modest differences in slant, stroke width, and loop shape; they are not four copies of one image.</p>
 </div>
 <h3>Removing the learning rate scheduler</h3>
 <div class="prose">
