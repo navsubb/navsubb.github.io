@@ -8,6 +8,8 @@ A GitHub Pages portfolio for CS 180 coursework.
 - `/cs180/` — CS 180 course portfolio
 - `/cs180/proj0/` — Project 0: Becoming Friends with Your Camera
 - `/cs180/proj1/` — Project 1: Colorizing the Prokudin-Gorskii Collection
+- `/cs180/proj2/` — Project 2: Fun with Filters and Frequencies
+- `/cs180/proj3/` — Project 3: Fun with Flow Models (Parts A and B)
 
 ## Preview locally
 
@@ -23,6 +25,8 @@ Then open:
 - <http://localhost:8000/cs180/>
 - <http://localhost:8000/cs180/proj0/>
 - <http://localhost:8000/cs180/proj1/>
+- <http://localhost:8000/cs180/proj2/>
+- <http://localhost:8000/cs180/proj3/>
 
 ## Export the required PDF
 

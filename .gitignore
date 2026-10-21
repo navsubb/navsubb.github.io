@@ -1,3 +1,13 @@
 .DS_Store
 preview.png
 cs180/proj0/images/dolly/
+
+# Keep assignment implementations and model checkpoints private.
+*.ipynb
+.ipynb_checkpoints/
+*.py
+__pycache__/
+*.pth
+*.pt
+*.ckpt
+*.safetensors

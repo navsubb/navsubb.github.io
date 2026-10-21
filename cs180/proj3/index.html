@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CS 180 Project 3 by Pranav Subbarayan: flow-model denoising, classifier-free guidance, image editing, visual anagrams, hybrid images, and training flow-matching UNets on MNIST." />
+    <title>CS 180 Project 3 — Pranav Subbarayan</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="gallery.js" defer></script>
+  </head>
+  <body>
+    <header><a href="../">← CS 180</a><span>Project 3 · Fall 2026</span></header>
+    <main id="top">
+<section class="intro" aria-labelledby="project-title">
+  <h1 id="project-title">Fun with Flow Models</h1>
+  <p class="intro-copy">In this project, I explore how flow models turn noise into images. Part A uses a pretrained model for denoising, image editing, and optical illusions. Part B builds a flow-matching model from scratch on MNIST.</p>
+  <nav class="part-nav" aria-label="Project parts">
+    <a href="#part-a">Part A: Exploring Flow Models</a>
+    <a href="#part-b">Part B: Flow Matching from Scratch</a>
+  </nav>
+</section>
+
+<section id="part-a" aria-labelledby="part-a-title"><div class="section-title"><h2 id="part-a-title">Part A: Exploring the Power of Flow Models</h2></div>
+<div class="prose">
+  <p>I use the pretrained <strong>PixNerd-XXL-P16-T2I</strong> model to denoise images, generate new images from noise, and edit images with text prompts. I also combine its predictions to create visual anagrams and hybrid images.</p>
+  <p>Input images are center-cropped and resized to <strong>512 × 512</strong> and normalized to [−1, 1]. Sampling uses an Euler step size of <strong>0.02</strong>. For classifier-free guidance, I use <strong>w = 7</strong> and an empty prompt for the unconditional prediction.</p>
+</div><nav class="section-nav" aria-label="Part A sections"><a href="#a-1-1">1. Training and sampling</a><a href="#a-2-1">2. Conditional generation and guidance</a><a href="#a-3-1">3. Creative applications</a></nav>
+</section>
+
+<section id="a-1-1" aria-labelledby="a-1-1-title"><div class="section-title"><h2 id="a-1-1-title">1.1: Constructing Noisy Training Inputs</h2></div>
+<div class="prose"><p>I use my Griffith Observatory photograph throughout Sections 1.1–1.5. Starting with one Gaussian noise tensor ε generated with <strong>seed 180</strong>, I form three noisy inputs by interpolating between the noise and the original image:</p></div><div class="formula" role="math" aria-label="x at time t equals one minus t times Gaussian noise plus t times the clean image">x<sub>t</sub> = (1 − t)ε + tx<sub>1</sub></div><div class="prose"><p>At t = 0 the input is pure noise; at t = 1 it is the clean image. Increasing t preserves more of the observatory, skyline, and sunset. I reuse the same image and noise in the following comparisons and check that interpolation recovers both endpoints exactly.</p></div><figure class="result-figure">
+  <a class="image-link" href="images/training_inputs.png" aria-label="Open full-resolution image: Griffith Observatory original and noisy inputs at times 0.25, 0.50, and 0.75"><img src="images/training_inputs.png" alt="Griffith Observatory original and noisy inputs at times 0.25, 0.50, and 0.75" width="1760" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption>Original and noisy inputs at t = 0.25, 0.50, and 0.75.</figcaption>
+</figure>
+</section>
+
+<section id="a-1-2" aria-labelledby="a-1-2-title"><div class="section-title"><h2 id="a-1-2-title">1.2: Classical Denoising</h2></div>
+<div class="prose"><p>As a classical baseline, I first divide the noisy image by t to restore the amplitude of the image contribution, then apply Gaussian blur. This division also amplifies the noise, so it does not recover the original by itself.</p></div><div class="formula" role="math" aria-label="Gaussian denoising equals Gaussian blur of the noisy image divided by t">x̂<sub>1</sub><sup>blur</sup> = G<sub>σ</sub>(x<sub>t</sub> / t)</div><div class="prose"><p>For each time, I try σ ∈ {1, 2, 4, 8, 16} and choose the result with the lowest mean squared error against the known clean image, before display clipping. The kernel width is 6σ + 1. This uses the original to select the best baseline; it is not a learned denoiser.</p></div><p class="figure-note">Noisy inputs (left) and Gaussian-denoised results (right).</p><figure class="result-figure pair-panel">
+  <a class="image-link" href="images/blur_0.25.png" aria-label="Open full-resolution image: Noisy Griffith Observatory at t = 0.25 beside Gaussian denoising with sigma 16"><img src="images/blur_0.25.png" alt="Noisy Griffith Observatory at t = 0.25 beside Gaussian denoising with sigma 16" width="880" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.25 · σ = 16</strong></figcaption>
+</figure><figure class="result-figure pair-panel">
+  <a class="image-link" href="images/blur_0.5.png" aria-label="Open full-resolution image: Noisy Griffith Observatory at t = 0.50 beside Gaussian denoising with sigma 4"><img src="images/blur_0.5.png" alt="Noisy Griffith Observatory at t = 0.50 beside Gaussian denoising with sigma 4" width="880" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.50 · σ = 4</strong></figcaption>
+</figure><figure class="result-figure pair-panel">
+  <a class="image-link" href="images/blur_0.75.png" aria-label="Open full-resolution image: Noisy Griffith Observatory at t = 0.75 beside Gaussian denoising with sigma 2"><img src="images/blur_0.75.png" alt="Noisy Griffith Observatory at t = 0.75 beside Gaussian denoising with sigma 2" width="880" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.75 · σ = 2</strong></figcaption>
+</figure><div class="prose"><p>At t = 0.25, the strongest blur removes much of the noise but also erases architectural detail. At t = 0.75, a smaller blur keeps more of the building and city, although visible noise remains.</p></div>
+</section>
+
+<section id="a-1-3" aria-labelledby="a-1-3-title"><div class="section-title"><h2 id="a-1-3-title">1.3: One-Step Denoising</h2></div>
+<div class="prose"><p>The pretrained model predicts velocity, rather than noise. For each saved input, I make one prediction with the prompt <strong>“a high quality photo”</strong> and extrapolate over the remaining time to the clean endpoint:</p></div><div class="formula" role="math" aria-label="One-step estimate equals the noisy input plus one minus t times the predicted velocity">x̂<sub>1</sub> = x<sub>t</sub> + (1 − t)v<sub>θ</sub>(x<sub>t</sub>, t, c)</div><figure class="result-figure">
+  <a class="image-link" href="images/one_step_0.25.png" aria-label="Open full-resolution image: Original, noisy input at t = 0.25, and one-step denoising of Griffith Observatory"><img src="images/one_step_0.25.png" alt="Original, noisy input at t = 0.25, and one-step denoising of Griffith Observatory" width="1320" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.25</strong></figcaption>
+</figure><figure class="result-figure">
+  <a class="image-link" href="images/one_step_0.5.png" aria-label="Open full-resolution image: Original, noisy input at t = 0.50, and one-step denoising of Griffith Observatory"><img src="images/one_step_0.5.png" alt="Original, noisy input at t = 0.50, and one-step denoising of Griffith Observatory" width="1320" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.50</strong></figcaption>
+</figure><figure class="result-figure">
+  <a class="image-link" href="images/one_step_0.75.png" aria-label="Open full-resolution image: Original, noisy input at t = 0.75, and one-step denoising of Griffith Observatory"><img src="images/one_step_0.75.png" alt="Original, noisy input at t = 0.75, and one-step denoising of Griffith Observatory" width="1320" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.75</strong></figcaption>
+</figure><div class="prose"><p>The one-step estimates recover the broad building shape and sunset much more clearly than Gaussian blur. At low t, the dome and city become smooth and lose fine detail. With more of the original retained at t = 0.75, the estimate also preserves more of that detail.</p></div>
+</section>
+
+<section id="a-1-4" aria-labelledby="a-1-4-title"><div class="section-title"><h2 id="a-1-4-title">1.4: Visualizing Velocity</h2></div>
+<div class="prose"><p>Because the original image and sampled noise are known, I can compare the predicted update with the exact update needed to recover this particular image. The ground-truth path velocity is x<sub>1</sub> − ε.</p></div><div class="formula" role="math" aria-label="Predicted and ground-truth updates, and their per-pixel root mean squared difference across RGB">Δ̂<sub>t</sub> = (1 − t)v<sub>θ</sub>(x<sub>t</sub>, t, c)<br />Δ<sub>t</sub> = (1 − t)(x<sub>1</sub> − ε) = x<sub>1</sub> − x<sub>t</sub><br />E<sub>t</sub> = √mean<sub>RGB</sub>[(Δ̂<sub>t</sub> − Δ<sub>t</sub>)²]</div><div class="prose"><p>I compute the error before clipping or display scaling, averaging only over RGB so each pixel has one error value. All update images share one symmetric scale with zero at middle gray. The error maps use one shared linear scale across the three times; brighter colors indicate larger error.</p></div><figure class="result-figure original-figure">
+  <a class="image-link" href="images/velocity_original.png" aria-label="Open full-resolution image: Original Griffith Observatory photograph used for velocity diagnostics"><img src="images/velocity_original.png" alt="Original Griffith Observatory photograph used for velocity diagnostics" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Original photograph</figcaption>
+</figure><figure class="result-figure">
+  <a class="image-link" href="images/velocity_0.25.png" aria-label="Open full-resolution image: Velocity diagnostics at t = 0.25: noisy input, predicted update, ground-truth update, and per-pixel RGB RMS error"><img src="images/velocity_0.25.png" alt="Velocity diagnostics at t = 0.25: noisy input, predicted update, ground-truth update, and per-pixel RGB RMS error" width="1760" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.25</strong></figcaption>
+</figure><figure class="result-figure">
+  <a class="image-link" href="images/velocity_0.50.png" aria-label="Open full-resolution image: Velocity diagnostics at t = 0.50: noisy input, predicted update, ground-truth update, and per-pixel RGB RMS error"><img src="images/velocity_0.50.png" alt="Velocity diagnostics at t = 0.50: noisy input, predicted update, ground-truth update, and per-pixel RGB RMS error" width="1760" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.50</strong></figcaption>
+</figure><figure class="result-figure">
+  <a class="image-link" href="images/velocity_0.75.png" aria-label="Open full-resolution image: Velocity diagnostics at t = 0.75: noisy input, predicted update, ground-truth update, and per-pixel RGB RMS error"><img src="images/velocity_0.75.png" alt="Velocity diagnostics at t = 0.75: noisy input, predicted update, ground-truth update, and per-pixel RGB RMS error" width="1760" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption><strong>t = 0.75</strong></figcaption>
+</figure><div class="prose"><p>Errors are most visible around the dome, building edges, and detailed city texture. The sky is comparatively easy to recover. The maps become darker at larger t as the required correction becomes smaller.</p></div>
+</section>
+
+<section id="a-1-5" aria-labelledby="a-1-5-title"><div class="section-title"><h2 id="a-1-5-title">1.5: Iterative Denoising with Euler Sampling</h2></div>
+<div class="prose"><p>A one-step estimate follows the current velocity all the way to t = 1. Euler sampling instead takes a small step, evaluates the velocity at the new image and time, and repeats:</p></div><div class="formula" role="math" aria-label="Euler update equals current image plus step size times predicted velocity">x<sub>t+h</sub> = x<sub>t</sub> + hv<sub>θ</sub>(x<sub>t</sub>, t, c)</div><div class="prose"><p>I start with the saved t = 0.50 input and take <strong>25 updates</strong> of size 0.02 using “a high quality photo,” without CFG. The sampler shortens the final step when necessary to end at t = 1. Checks against a constant velocity field pass for starts at 0, 0.50, and 0.93, including the shortened final step.</p></div><div class="image-grid three-columns trajectory-grid"><figure><a class="image-link trajectory-tile" href="images/trajectory.png" aria-label="Open full Euler trajectory; this view shows t = 0.50"><img src="images/trajectory.png" alt="Euler state at t = 0.50" width="1320" height="3960" loading="lazy" decoding="async" style="left: 0%; top: 0%;" /></a><figcaption>t = 0.50 · initial state</figcaption></figure><figure><a class="image-link trajectory-tile" href="images/trajectory.png" aria-label="Open full Euler trajectory; this view shows t = 0.60"><img src="images/trajectory.png" alt="Euler state at t = 0.60" width="1320" height="3960" loading="lazy" decoding="async" style="left: -200%; top: -100%;" /></a><figcaption>t = 0.60 · update 5</figcaption></figure><figure><a class="image-link trajectory-tile" href="images/trajectory.png" aria-label="Open full Euler trajectory; this view shows t = 0.70"><img src="images/trajectory.png" alt="Euler state at t = 0.70" width="1320" height="3960" loading="lazy" decoding="async" style="left: -100%; top: -300%;" /></a><figcaption>t = 0.70 · update 10</figcaption></figure><figure><a class="image-link trajectory-tile" href="images/trajectory.png" aria-label="Open full Euler trajectory; this view shows t = 0.80"><img src="images/trajectory.png" alt="Euler state at t = 0.80" width="1320" height="3960" loading="lazy" decoding="async" style="left: 0%; top: -500%;" /></a><figcaption>t = 0.80 · update 15</figcaption></figure><figure><a class="image-link trajectory-tile" href="images/trajectory.png" aria-label="Open full Euler trajectory; this view shows t = 0.90"><img src="images/trajectory.png" alt="Euler state at t = 0.90" width="1320" height="3960" loading="lazy" decoding="async" style="left: -200%; top: -600%;" /></a><figcaption>t = 0.90 · update 20</figcaption></figure><figure><a class="image-link trajectory-tile" href="images/trajectory.png" aria-label="Open full Euler trajectory; this view shows t = 1.00"><img src="images/trajectory.png" alt="Euler state at t = 1.00" width="1320" height="3960" loading="lazy" decoding="async" style="left: -100%; top: -800%;" /></a><figcaption>t = 1.00 · update 25</figcaption></figure></div><p class="figure-note"><a href="images/trajectory.png">Full trajectory · 26 states</a></p><h3>Comparing the denoising methods</h3><figure class="result-figure">
+  <a class="image-link" href="images/comparison.png" aria-label="Open full-resolution image: Original Griffith Observatory, Gaussian blur, one-step estimate, and Euler reconstruction"><img src="images/comparison.png" alt="Original Griffith Observatory, Gaussian blur, one-step estimate, and Euler reconstruction" width="1760" height="440" loading="lazy" decoding="async"  /></a>
+  <figcaption>Denoising from the same t = 0.50 input.</figcaption>
+</figure><table class="runtime-table"><caption>Reconstruction MSE at t = 0.50 (before display clipping)</caption><thead><tr><th scope="col">Method</th><th scope="col">MSE</th></tr></thead><tbody><tr><th scope="row">Gaussian blur (σ = 4)</th><td>0.013638</td></tr><tr><th scope="row">One-step estimate</th><td>0.006067</td></tr><tr><th scope="row">Euler, 25 updates</th><td>0.007655</td></tr></tbody></table><div class="prose"><p>Euler restores more visible texture to the building and city, while the one-step image looks smoother. However, <strong>one-step denoising has the lowest reconstruction MSE in this run</strong>. The extra texture in the Euler result does not necessarily match the original pixels, so a more detailed-looking image is not automatically a more accurate reconstruction.</p></div>
+</section>
+
+<section id="a-1-6" aria-labelledby="a-1-6-title"><div class="section-title"><h2 id="a-1-6-title">1.6: Generating Images from Noise</h2></div>
+<div class="prose"><p>To generate images from scratch, I start at t = 0 with independent Gaussian noise and take 50 Euler steps to t = 1. These five samples all use the prompt <strong>“a high quality photo”</strong>, with no classifier-free guidance.</p></div><div class="image-grid three-columns"><figure class="">
+  <a class="image-link" href="images/conditional_0.png" aria-label="Open full-resolution image: Ordinary conditional sample with seed 300"><img src="images/conditional_0.png" alt="Ordinary conditional sample with seed 300" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Seed 300</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/conditional_1.png" aria-label="Open full-resolution image: Ordinary conditional sample with seed 301"><img src="images/conditional_1.png" alt="Ordinary conditional sample with seed 301" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Seed 301</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/conditional_2.png" aria-label="Open full-resolution image: Ordinary conditional sample with seed 302"><img src="images/conditional_2.png" alt="Ordinary conditional sample with seed 302" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Seed 302</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/conditional_3.png" aria-label="Open full-resolution image: Ordinary conditional sample with seed 303"><img src="images/conditional_3.png" alt="Ordinary conditional sample with seed 303" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Seed 303</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/conditional_4.png" aria-label="Open full-resolution image: Ordinary conditional sample with seed 304"><img src="images/conditional_4.png" alt="Ordinary conditional sample with seed 304" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Seed 304</figcaption>
+</figure></div><div class="prose"><p>Four of the five samples are portraits, while seed 304 produces an open landscape. Even this generic prompt strongly favors portraits in these samples, though it does not specify a subject. I keep these exact initial noises for the CFG comparison below.</p></div>
+</section>
+
+<section id="a-2-1" aria-labelledby="a-2-1-title"><div class="section-title"><h2 id="a-2-1-title">2.1: Classifier-Free Guidance</h2></div>
+<div class="prose"><p>Classifier-free guidance evaluates the same image and time with both the text condition and an empty-string prompt. I combine the two velocity predictions using Part A’s convention:</p></div><div class="formula" role="math" aria-label="Guided velocity equals conditional velocity plus seven times the difference between conditional and unconditional velocities">v<sub>CFG</sub> = v<sub>c</sub> + w(v<sub>c</sub> − v<sub>u</sub>), &nbsp; w = 7</div><div class="prose"><p>Here, w = 0 recovers ordinary conditional sampling; I check this equality in the notebook. I then generate another five samples using the <strong>same seeds 300–304</strong>, prompt, and step size as Section 1.6.</p></div><div class="sample-pair"><h3>Seed 300</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/conditional_0.png" aria-label="Open full-resolution image: Seed 300 without CFG"><img src="images/conditional_0.png" alt="Seed 300 without CFG" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Without CFG · w = 0</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/cfg_0.png" aria-label="Open full-resolution image: Seed 300 with classifier-free guidance"><img src="images/cfg_0.png" alt="Seed 300 with classifier-free guidance" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>With CFG · w = 7</figcaption>
+</figure></div></div><div class="sample-pair"><h3>Seed 301</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/conditional_1.png" aria-label="Open full-resolution image: Seed 301 without CFG"><img src="images/conditional_1.png" alt="Seed 301 without CFG" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Without CFG · w = 0</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/cfg_1.png" aria-label="Open full-resolution image: Seed 301 with classifier-free guidance"><img src="images/cfg_1.png" alt="Seed 301 with classifier-free guidance" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>With CFG · w = 7</figcaption>
+</figure></div></div><div class="sample-pair"><h3>Seed 302</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/conditional_2.png" aria-label="Open full-resolution image: Seed 302 without CFG"><img src="images/conditional_2.png" alt="Seed 302 without CFG" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Without CFG · w = 0</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/cfg_2.png" aria-label="Open full-resolution image: Seed 302 with classifier-free guidance"><img src="images/cfg_2.png" alt="Seed 302 with classifier-free guidance" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>With CFG · w = 7</figcaption>
+</figure></div></div><div class="sample-pair"><h3>Seed 303</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/conditional_3.png" aria-label="Open full-resolution image: Seed 303 without CFG"><img src="images/conditional_3.png" alt="Seed 303 without CFG" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Without CFG · w = 0</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/cfg_3.png" aria-label="Open full-resolution image: Seed 303 with classifier-free guidance"><img src="images/cfg_3.png" alt="Seed 303 with classifier-free guidance" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>With CFG · w = 7</figcaption>
+</figure></div></div><div class="sample-pair"><h3>Seed 304</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/conditional_4.png" aria-label="Open full-resolution image: Seed 304 without CFG"><img src="images/conditional_4.png" alt="Seed 304 without CFG" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>Without CFG · w = 0</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/cfg_4.png" aria-label="Open full-resolution image: Seed 304 with classifier-free guidance"><img src="images/cfg_4.png" alt="Seed 304 with classifier-free guidance" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>With CFG · w = 7</figcaption>
+</figure></div></div><div class="prose"><p>The guided samples have more consistent portrait framing, smoother backgrounds, and stronger facial definition. All five are now portraits: the landscape at seed 304 becomes a face. In this small comparison, guidance reduces subject diversity and can change the subject substantially even when the starting noise stays fixed.</p></div>
+</section>
+
+<section id="a-3-1" aria-labelledby="a-3-1-title"><div class="section-title"><h2 id="a-3-1-title">3.1: Image-to-Image Editing</h2></div>
+<div class="prose"><p>For image-to-image editing, I interpolate an existing image with noise at a chosen starting time, then integrate from that time to 1 using CFG. I use the prompt <strong>“a high quality photo”</strong>, w = 7, and h = 0.02.</p><p>Each sweep uses the same noise from seed 180 at all seven starting times: <strong>0.02, 0.04, 0.06, 0.10, 0.14, 0.25, and 0.50</strong>. Lower starting times retain less of the input and allow larger changes. Higher starting times preserve more of the original.</p></div><p class="figure-note">In every editing grid, read left to right across the top row, then the bottom row: original, t = 0.02, 0.04, 0.06, 0.10, 0.14, 0.25, 0.50.</p><h3>Campanile</h3><figure class="result-figure">
+  <a class="image-link" href="images/edit_campanile.png" aria-label="Open full-resolution image: Campanile: original and seven image-to-image edits"><img src="images/edit_campanile.png" alt="Campanile: original and seven image-to-image edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At the smallest starting time, the tower becomes a smooth, rounded object. The vertical silhouette returns before the clock and belfry details; by t = 0.25–0.50 the image closely resembles the original.</p></div><h3>Mountain goat</h3><figure class="result-figure">
+  <a class="image-link" href="images/edit_my_image_1.png" aria-label="Open full-resolution image: Mountain goat: original and seven image-to-image edits"><img src="images/edit_my_image_1.png" alt="Mountain goat: original and seven image-to-image edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At t = 0.02–0.06, the goat is replaced by buildings or a white block. At t = 0.10–0.14, the model produces a grazing animal but changes its appearance and surroundings. Higher starting times restore the goat and mountain backdrop.</p></div><h3>Deer</h3><figure class="result-figure">
+  <a class="image-link" href="images/edit_my_image_2.png" aria-label="Open full-resolution image: Deer: original and seven image-to-image edits"><img src="images/edit_my_image_2.png" alt="Deer: original and seven image-to-image edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>The low-time samples turn into portraits or unrelated objects. The yellow wall and roadside composition return around t = 0.10–0.14, before the deer itself becomes recognizable at t = 0.25–0.50.</p></div><h3>Editing hand-drawn and web images</h3><div class="prose"><p>I apply the same procedure to a downloaded landscape painting and two drawings. These inputs test how the photo prompt interprets shapes that are not already photographs.</p></div><h3>Downloaded Painting</h3>
+<p class="figure-note">Albert Bierstadt, <a href="https://americanart.si.edu/artwork/among-sierra-nevada-california-2059"><em>Among the Sierra Nevada, California</em></a>, 1868. Source: Smithsonian American Art Museum.</p>
+<figure class="result-figure">
+  <a class="image-link" href="images/edit_web_image.png" aria-label="Open full-resolution image: Downloaded Painting: original and seven image-to-image edits"><img src="images/edit_web_image.png" alt="Downloaded landscape painting: original and seven image-to-image edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At low starting times, the painting becomes unrelated people or smooth gray forms. Around t = 0.25, it becomes a soft landscape; at t = 0.50, much of the original painted scene returns.</p></div><h3>My Telescope Drawing</h3><figure class="result-figure">
+  <a class="image-link" href="images/edit_drawing_1.png" aria-label="Open full-resolution image: Telescope drawing: original and seven image-to-image edits"><img src="images/edit_drawing_1.png" alt="Telescope drawing: original and seven image-to-image edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At t = 0.02–0.06, the model interprets the drawing as simple manufactured objects. Around t = 0.10–0.14, the blue telescope and yellow star gain smoother, more dimensional shading. At larger times, the drawn outlines return.</p></div><h3>My Frankenstein Drawing</h3><figure class="result-figure">
+  <a class="image-link" href="images/edit_drawing_2.png" aria-label="Open full-resolution image: Frankenstein drawing: original and seven image-to-image edits"><img src="images/edit_drawing_2.png" alt="Frankenstein drawing: original and seven image-to-image edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>Low starting times yield a portrait or rounded object. Intermediate times reinterpret the arms and torso as a toy-like figure; by t = 0.25–0.50, the original drawing is largely preserved.</p></div>
+</section>
+
+<section id="a-3-2" aria-labelledby="a-3-2-title"><div class="section-title"><h2 id="a-3-2-title">3.2: Text-Guided Image Editing</h2></div>
+<div class="prose"><p>I repeat the same editing sweeps but replace the generic photo prompt with a description of the desired transformation. The original inputs, seven starting times, seed 180, CFG weight 7, and Euler step size 0.02 stay the same.</p><p>These results show the tradeoff between following the prompt and preserving the image. With little original signal left, the model can generate a new scene. At intermediate times, the prompt reshapes recognizable parts of the input.</p></div><h3><i>Sather Stairway</i></h3><div class="prose"><p><strong>Prompt:</strong> “a photograph of a grand staircase ascending into the clouds”</p></div><figure class="result-figure">
+  <a class="image-link" href="images/text_edit_campanile.png" aria-label="Open full-resolution image: Campanile with a staircase prompt: original and seven text-guided edits"><img src="images/text_edit_campanile.png" alt="Campanile with a staircase prompt: original and seven text-guided edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At t = 0.02, the result is a staircase surrounded by clouds. Between t = 0.06 and 0.14, the tower’s tall shape becomes a narrow staircase, retaining the original framing. At t = 0.25–0.50, the Campanile dominates again.</p></div><h3><i>Goat-riffin</i></h3><div class="prose"><p><strong>Prompt:</strong> “a photograph of a griffin flying above a canyon”</p></div><figure class="result-figure">
+  <a class="image-link" href="images/text_edit_my_image_1.png" aria-label="Open full-resolution image: Mountain goat with a griffin prompt: original and seven text-guided edits"><img src="images/text_edit_my_image_1.png" alt="Mountain goat with a griffin prompt: original and seven text-guided edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At low starting times, the prompt produces winged creatures above a canyon, although several look more like birds than griffins. Intermediate times mix wings with the original animal’s pose. At t = 0.50, the mountain goat remains almost unchanged.</p></div><h3><i>Ho, Ho, Halloween!</i></h3><div class="prose"><p><strong>Prompt:</strong> “a photograph of a reindeer eating a pumpkin”</p></div><figure class="result-figure">
+  <a class="image-link" href="images/text_edit_my_image_2.png" aria-label="Open full-resolution image: Deer with a reindeer-and-pumpkin prompt: original and seven text-guided edits"><img src="images/text_edit_my_image_2.png" alt="Deer with a reindeer-and-pumpkin prompt: original and seven text-guided edits" width="1760" height="880" loading="lazy" decoding="async"  /></a>
+</figure><div class="prose"><p>At low starting times, the deer gains prominent antlers and a pumpkin in a new setting. Around t = 0.14–0.25, the yellow wall and road return while the pumpkin remains near the animal’s mouth. The original deer is largely preserved at t = 0.50.</p></div>
+</section>
+
+<section id="a-3-3" aria-labelledby="a-3-3-title"><div class="section-title"><h2 id="a-3-3-title">3.3: Visual Anagrams</h2></div>
+<div class="prose"><p>For a visual anagram, I ask one prompt to explain the upright image and another to explain the image rotated 180°. At each Euler step, I rotate the second velocity prediction back into the original orientation, average the two guided velocities, and update the image.</p></div><div class="formula" role="math" aria-label="Average of upright guided velocity and rotated-back guided velocity for the rotated image">v = ½[v<sub>CFG</sub>(x<sub>t</sub>, t, c<sub>A</sub>) + R(v<sub>CFG</sub>(R(x<sub>t</sub>), t, c<sub>B</sub>))]</div><div class="prose"><p>R flips both spatial axes, giving a 180° rotation. I check that rotating twice returns the original tensor. Both examples start from pure noise and use 50 Euler updates with w = 7. Each pair shows the upright view on the left and the 180° rotation on the right.</p></div><h3><i>First Contact</i> (Seed 180)</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/anagram_0.png" aria-label="Open full-resolution image: Upright anagram: an oil painting of an alien"><img src="images/anagram_0.png" alt="Upright anagram: an oil painting of an alien" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>“an oil painting of an alien”</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/anagram_0.png" aria-label="Open full-resolution image: Anagram rotated 180 degrees: an oil painting of people on Earth"><img src="images/anagram_0.png" alt="Anagram rotated 180 degrees: an oil painting of people on Earth" width="512" height="512" loading="lazy" decoding="async" class="rotated" /></a>
+  <figcaption>“an oil painting of people on Earth”</figcaption>
+</figure></div><div class="prose"><p>The alien’s head is the strongest upright shape. Rotating the image brings a globe and human figures into view, although the alien’s features remain noticeable, so the two readings do not separate completely.</p></div><h3><i>Night Underpass</i> (Seed 181)</h3><div class="image-grid"><figure class="">
+  <a class="image-link" href="images/anagram_1.png" aria-label="Open full-resolution image: Upright anagram: a lithograph of a crowded night market"><img src="images/anagram_1.png" alt="Upright anagram: a lithograph of a crowded night market" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>“a lithograph of a crowded night market”</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/anagram_1.png" aria-label="Open full-resolution image: Anagram rotated 180 degrees: a lithograph of a bridge over a canyon"><img src="images/anagram_1.png" alt="Anagram rotated 180 degrees: a lithograph of a bridge over a canyon" width="512" height="512" loading="lazy" decoding="async" class="rotated" /></a>
+  <figcaption>“a lithograph of a bridge over a canyon”</figcaption>
+</figure></div><div class="prose"><p>In the upright view, figures and stalls line a narrow market passage. After rotation, the bright opening reads as a canyon under a bridge. This pair gives a clearer change in interpretation.</p></div>
+</section>
+
+<section id="a-3-4" aria-labelledby="a-3-4-title"><div class="section-title"><h2 id="a-3-4-title">3.4: Hybrid Images</h2></div>
+<div class="prose"><p>To create a hybrid image, I combine low frequencies from one prompt’s guided velocity with high frequencies from another. Both predictions use the same current image and time. I then integrate this composite velocity with Euler sampling:</p></div><div class="formula" role="math" aria-label="Hybrid velocity equals the low-pass distant prediction plus the high-pass close prediction">v = G<sub>σ</sub>(v<sub>distant</sub>) + [v<sub>close</sub> − G<sub>σ</sub>(v<sub>close</sub>)]</div><div class="prose"><p>I use a Gaussian kernel of <strong>265 × 265</strong> with <strong>σ = 16</strong>, CFG weight 7, and 50 Euler steps. The larger view emphasizes detail; the same image shown at 64 × 64 pixels helps reveal its broad structure.</p></div><h3>Monkeys / Owl (Seed 180)</h3><div class="image-grid hybrid-grid"><figure class="">
+  <a class="image-link" href="images/hybrid_0.png" aria-label="Open full-resolution image: Hybrid close view, intended subject: an oil painting of monkeys"><img src="images/hybrid_0.png" alt="Hybrid close view, intended subject: an oil painting of monkeys" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>“an oil painting of monkeys”</figcaption>
+</figure><figure><div class="distant-view"><a href="images/hybrid_0.png" aria-label="Open full-resolution hybrid"><img src="images/hybrid_0.png" alt="Hybrid distant view, intended subject: an oil painting of an owl" width="512" height="512" loading="lazy" decoding="async"  /></a></div><figcaption><strong>Distant prompt:</strong> “an oil painting of an owl”</figcaption></figure></div><div class="prose"><p>Up close, the image shows two monkeys. At a distance, their combined shape reads as an owl, with the darker patches on the monkeys’ heads becoming the owl’s ear tufts.</p></div><h3>Surfer / Car (Seed 181)</h3><div class="image-grid hybrid-grid"><figure class="">
+  <a class="image-link" href="images/hybrid_1.png" aria-label="Open full-resolution image: Hybrid close view, intended subject: a lithograph of a surfer"><img src="images/hybrid_1.png" alt="Hybrid close view, intended subject: a lithograph of a surfer" width="512" height="512" loading="lazy" decoding="async"  /></a>
+  <figcaption>“a lithograph of a surfer”</figcaption>
+</figure><figure><div class="distant-view"><a href="images/hybrid_1.png" aria-label="Open full-resolution hybrid"><img src="images/hybrid_1.png" alt="Hybrid distant view, intended subject: a lithograph of a car" width="512" height="512" loading="lazy" decoding="async"  /></a></div><figcaption><strong>Distant prompt:</strong> “a lithograph of a car”</figcaption></figure></div><div class="prose"><p>Up close, the image shows a surfer riding a wave. When viewed at a smaller scale, the shapes read as a blue, futuristic car with an amphibious appearance.</p></div>
+</section>
+
+<section id="part-a-takeaway" aria-labelledby="part-a-takeaway-title"><div class="section-title"><h2 id="part-a-takeaway-title">Part A: What I Learned</h2></div>
+<div class="prose">
+  <p>I learned how starting time controls the balance between preserving an image and changing it. Lower starting times gave the text prompt more influence, while higher starting times kept more of the original. Guidance also changed the variety of generated subjects: with the same five noise seeds, CFG turned the one landscape into another portrait.</p>
+  <p>The denoising results showed that more detail does not always mean a more accurate reconstruction. Euler sampling produced more texture, but the smoother one-step estimate had lower MSE. The anagrams and hybrids showed how a single image can support two interpretations, revealed by rotating it or changing the viewing scale.</p>
+</div>
+</section>
+
+<section id="part-b" aria-labelledby="part-b-title">
+<div class="section-title"><h2 id="part-b-title">Part B: Flow Matching from Scratch</h2></div>
+<div class="prose">
+  <p>I train UNets on MNIST, starting with single-step denoising and then learning a velocity field that turns Gaussian noise into digits. Adding class conditioning lets me choose which digit to generate.</p>
+  <p>The images are <strong>28 × 28</strong> grayscale digits with clean pixels in [0, 1]. I train on the 60,000 training images and use held-out test digits for the denoising comparisons.</p>
+</div>
+<nav class="section-nav" aria-label="Part B sections"><a href="#b-1-1">1. Single-step denoising</a><a href="#b-2-1">2.1–2.3: Time-conditioned flow matching</a><a href="#b-2-4">2.4–2.6: Class conditioning and guidance</a></nav>
+</section>
+
+<section id="b-1-1" aria-labelledby="b-1-1-title">
+<div class="section-title"><h2 id="b-1-1-title">1.1: Implementing the UNet</h2></div>
+<div class="prose">
+  <p>My UNet follows the <a href="https://cal-cs180.github.io/fa26/hw/proj3-flow/partb.html">assignment architecture</a>. Two downsampling blocks reduce the spatial resolution from 28 × 28 to 14 × 14 and then 7 × 7, with channel widths D, D, and 2D. Average pooling and GELU produce a 1 × 1 bottleneck, and a transposed convolution expands it back to 7 × 7.</p>
+  <p>The decoder upsamples back to 28 × 28, concatenating encoder features at each matching resolution. These skip connections preserve spatial detail. Each ConvBlock uses two convolution–batch normalization–GELU layers; a final ConvBlock and convolution produce the single-channel output. I use <strong>D = 128</strong> for the denoisers.</p>
+</div>
+</section>
+
+<section id="b-1-2" aria-labelledby="b-1-2-title">
+<div class="section-title"><h2 id="b-1-2-title">1.2: Adding Noise to MNIST</h2></div>
+<div class="prose">
+  <p>I create noisy inputs by adding Gaussian noise to a clean digit. The examples below use σ ∈ {0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0}; each noisy example has a fresh noise draw. As σ increases, the strokes become harder to distinguish from the background.</p>
+</div>
+<div class="formula" role="math" aria-label="Noisy input equals the clean digit plus sigma times Gaussian noise">z = x + σε, &nbsp; ε ∼ N(0, I)</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/noise_levels.png" aria-label="Open full-resolution image: MNIST digit 5 with Gaussian noise levels from 0 to 1"><img src="images/partb/noise_levels.png" alt="MNIST digit 5 with Gaussian noise levels from 0 to 1" width="1800" height="750" loading="lazy" decoding="async" /></a>
+</figure>
+</section>
+
+<section id="b-1-2-1" aria-labelledby="b-1-2-1-title">
+<div class="section-title"><h2 id="b-1-2-1-title">1.2.1: Training the Denoiser</h2></div>
+<div class="prose">
+  <p>I train for <strong>5 epochs</strong> at <strong>σ = 0.5</strong>, using Adam with learning rate <strong>10<sup>−4</sup></strong> and batch size <strong>256</strong>. I draw fresh noise for each training batch and minimize the mean squared error between the predicted and clean pixels.</p>
+</div>
+<div class="formula" role="math" aria-label="Denoising loss is the expected squared error between the predicted and clean images">L = E[‖D<sub>θ</sub>(x + σε) − x‖²]</div>
+<figure class="result-figure pair-panel">
+  <a class="image-link" href="images/partb/denoising_loss.png" aria-label="Open full-resolution image: Denoising training MSE over five epochs"><img src="images/partb/denoising_loss.png" alt="Denoising training MSE over five epochs" width="1500" height="600" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>The loss drops quickly and then decreases more gradually. I compare the same five test images and fixed noisy inputs after epochs 1 and 5. The first checkpoint already recovers the digits; by epoch 5, the backgrounds are cleaner and the strokes are more consistent.</p>
+</div>
+<figure class="result-figure">
+<div class="image-grid"><div>
+  <a class="image-link" href="images/partb/denoising_epoch_1.png" aria-label="Open full-resolution image: Epoch 1: clean test digits, noisy inputs, and denoised predictions"><img src="images/partb/denoising_epoch_1.png" alt="Epoch 1: clean test digits, noisy inputs, and denoised predictions" width="1000" height="600" loading="lazy" decoding="async" /></a>
+</div><div>
+  <a class="image-link" href="images/partb/denoising_epoch_5.png" aria-label="Open full-resolution image: Epoch 5: the same clean test digits, noisy inputs, and denoised predictions"><img src="images/partb/denoising_epoch_5.png" alt="Epoch 5: the same clean test digits, noisy inputs, and denoised predictions" width="1000" height="600" loading="lazy" decoding="async" /></a>
+</div></div>
+<figcaption>
+  <strong>Top row:</strong> Clean digits<br />
+  <strong>Middle row:</strong> Noisy inputs (σ = 0.5)<br />
+  <strong>Bottom row:</strong> Denoised predictions<br />
+  <strong>Each column:</strong> The same test digit
+</figcaption>
+</figure>
+</section>
+
+<section id="b-1-2-2" aria-labelledby="b-1-2-2-title">
+<div class="section-title"><h2 id="b-1-2-2-title">1.2.2: Out-of-Distribution Testing</h2></div>
+<div class="prose">
+  <p>I test the trained denoiser at noise levels outside its training setting of σ = 0.5. For each digit, I keep both the clean image and underlying noise fixed while varying σ, so the comparison isolates noise strength.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/ood_denoising.png" aria-label="Open full-resolution image: Input and output pairs for test digits 7, 2, 1, and 0 across seven noise levels"><img src="images/partb/ood_denoising.png" alt="Input and output pairs for test digits 7, 2, 1, and 0 across seven noise levels" width="2171" height="1641" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>The model handles low and moderate noise well, but it starts changing the digit when the input becomes too ambiguous. At σ = 0.8 and 1.0, the 2 becomes an 8-like shape; the 1 also develops extra strokes at the highest noise level. Even at σ = 0, the network slightly smooths the clean image.</p>
+</div>
+</section>
+
+<section id="b-1-2-3" aria-labelledby="b-1-2-3-title">
+<div class="section-title"><h2 id="b-1-2-3-title">1.2.3: Denoising Pure Noise</h2></div>
+<div class="prose">
+  <p>I train a fresh UNet with the same settings, replacing the noisy digit input with independent Gaussian noise. Each input is paired with a clean training digit, but contains no information about that target. I evaluate the same eight noise inputs after epochs 1 and 5.</p>
+</div>
+<figure class="result-figure pair-panel">
+  <a class="image-link" href="images/partb/pure_noise_loss_zoomed_in.png" aria-label="Open full-resolution image: Pure-noise denoising training loss over five epochs"><img src="images/partb/pure_noise_loss_zoomed_in.png" alt="Pure-noise denoising training loss over five epochs" width="1500" height="600" loading="lazy" decoding="async" /></a>
+</figure>
+<p class="figure-note">Noise inputs (top) and predictions (bottom).</p>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/pure_noise_epoch_1.png" aria-label="Open full-resolution image: Pure-noise denoiser predictions after epoch 1"><img src="images/partb/pure_noise_epoch_1.png" alt="Pure-noise denoiser predictions after epoch 1" width="1413" height="421" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/pure_noise_epoch_5.png" aria-label="Open full-resolution image: Pure-noise denoiser predictions after epoch 5"><img src="images/partb/pure_noise_epoch_5.png" alt="Pure-noise denoiser predictions after epoch 5" width="1413" height="421" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>The loss drops rapidly and then fluctuates around 0.07 for the rest of training. At both epochs 1 and 5, the eight different noise inputs produce similar blurred, roughly oval shapes with faint internal structure. Small differences remain between outputs, but neither checkpoint produces a varied set of clearly recognizable digits.</p>
+  <p>Under squared error, the optimal prediction is the conditional mean E[x | ε]. Since each noise input is independent of its target digit, this reduces to E[x]: the <strong>pixelwise average of the training digits</strong> across classes 0–9. Predicting a specific digit would incur errors whenever the unrelated target had different strokes. Averaging minimizes the expected squared error across these possible targets.</p>
+  <p>This average is the centroid of the training images when each image is treated as a vector of pixel values. Pixels where strokes frequently overlap remain brighter, while differences in digit shape and handwriting blur together. The similar outputs are consistent with approximating this average, although I have not directly measured their similarity to the dataset mean. More training does not give the noise information about its target, so this objective continues to favor averaging rather than learning to generate diverse digits.</p>
+</div>
+</section>
+
+<section id="b-2-1" aria-labelledby="b-2-1-title">
+<div class="section-title"><h2 id="b-2-1-title">2.1: Adding Time Conditioning</h2></div>
+<div class="prose">
+  <p>For flow matching, I use a <strong>D = 64</strong> UNet and give it the current time t. Two separate FCBlocks, each consisting of Linear → GELU → Linear, map the scalar time to 2D and D features. I broadcast these embeddings over the spatial dimensions and multiply them into the decoder features after unflattening and after the first upsampling block.</p>
+  <p>The network predicts a velocity at each pixel. During training, I draw a Gaussian image x<sub>0</sub>, a clean digit x<sub>1</sub>, and a continuous time t uniformly from [0, 1), then construct a point along their straight interpolation:</p>
+</div>
+<div class="formula" role="math" aria-label="Interpolate from noise to the clean digit; the target velocity is clean digit minus noise">x<sub>t</sub> = (1 − t)x<sub>0</sub> + tx<sub>1</sub>, &nbsp; v<sub>target</sub> = x<sub>1</sub> − x<sub>0</sub></div>
+</section>
+
+<section id="b-2-2" aria-labelledby="b-2-2-title">
+<div class="section-title"><h2 id="b-2-2-title">2.2: Training the Time-Conditioned UNet</h2></div>
+<div class="prose">
+  <p>I train for <strong>10 epochs</strong> with batch size <strong>64</strong> and Adam starting at <strong>0.01</strong>. After each epoch, an exponential scheduler multiplies the learning rate by 0.1<sup>1/10</sup>. Fresh noise and times are sampled for each batch, and the objective is mean squared error against the target velocity.</p>
+</div>
+<div class="formula" role="math" aria-label="Flow matching loss is the expected squared error between predicted and target velocity">L = E[‖v<sub>θ</sub>(x<sub>t</sub>, t) − (x<sub>1</sub> − x<sub>0</sub>)‖²]</div>
+<figure class="result-figure pair-panel">
+  <a class="image-link" href="images/partb/time_fm_loss.png" aria-label="Open full-resolution image: Time-conditioned flow matching training loss over ten epochs"><img src="images/partb/time_fm_loss.png" alt="Time-conditioned flow matching training loss over ten epochs" width="1500" height="600" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>The loss falls rapidly, with a brief spike around iteration 4,100 before returning to its earlier trend. The first batch loss is 1.1915 and the last is 0.0952; the final batches fluctuate around 0.1.</p>
+</div>
+</section>
+
+<section id="b-2-3" aria-labelledby="b-2-3-title">
+<div class="section-title"><h2 id="b-2-3-title">2.3: Sampling from the Time-Conditioned UNet</h2></div>
+<div class="prose">
+  <p>I start from Gaussian noise at t = 0 and integrate the predicted velocity with <strong>50 Euler steps</strong>, using h = 0.02 to reach t = 1. Each checkpoint uses <strong>seed 0</strong>, so the initial noise is identical across epochs.</p>
+</div>
+<div class="formula" role="math" aria-label="Euler sampling adds step size times predicted velocity to the current image">x<sub>t+h</sub> = x<sub>t</sub> + hv<sub>θ</sub>(x<sub>t</sub>, t)</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/time_fm_samples_epoch_1.png" aria-label="Open full-resolution image: Ten time-conditioned flow samples after epoch 1, using the same initial noise"><img src="images/partb/time_fm_samples_epoch_1.png" alt="Ten time-conditioned flow samples after epoch 1, using the same initial noise" width="1200" height="200" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/time_fm_samples_epoch_5.png" aria-label="Open full-resolution image: Ten time-conditioned flow samples after epoch 5, using the same initial noise"><img src="images/partb/time_fm_samples_epoch_5.png" alt="Ten time-conditioned flow samples after epoch 5, using the same initial noise" width="1200" height="200" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/time_fm_samples_epoch_10.png" aria-label="Open full-resolution image: Ten time-conditioned flow samples after epoch 10, using the same initial noise"><img src="images/partb/time_fm_samples_epoch_10.png" alt="Ten time-conditioned flow samples after epoch 10, using the same initial noise" width="1200" height="200" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>At epoch 1, several samples have broken or ambiguous strokes. By epochs 5 and 10, more recognizable digits emerge, including clear 2s, 4s, and 5s. Some shapes remain incomplete or hard to read, and individual samples do not improve uniformly between checkpoints.</p>
+</div>
+</section>
+
+<section id="b-2-4" aria-labelledby="b-2-4-title">
+<div class="section-title"><h2 id="b-2-4-title">2.4: Adding Class Conditioning</h2></div>
+<div class="prose">
+  <p>I encode the requested digit as a 10-dimensional one-hot vector and add two class FCBlocks alongside the time embeddings. At each conditioning location, the class embedding scales the features and the time embedding shifts them:</p>
+</div>
+<div class="formula" role="math" aria-label="Conditioned features equal class embedding times features plus time embedding">f′ = c<sub>embed</sub> ⊙ f + t<sub>embed</sub></div>
+<div class="prose">
+  <p>During training, I independently set each example’s class vector to zero with probability <strong>0.1</strong>. This teaches the same model to predict velocities both with and without a digit label, enabling classifier-free guidance during sampling.</p>
+</div>
+</section>
+
+<section id="b-2-5" aria-labelledby="b-2-5-title">
+<div class="section-title"><h2 id="b-2-5-title">2.5: Training the Class-Conditioned UNet</h2></div>
+<div class="prose">
+  <p>I train a fresh class-conditioned UNet with <strong>D = 64</strong> for <strong>10 epochs</strong>, using batch size <strong>64</strong>, Adam at an initial learning rate of <strong>0.01</strong>, and the same exponential decay. The velocity objective and random time sampling stay the same.</p>
+  <p>The plots also include an independent run at a constant learning rate of <strong>0.003</strong>. The full scale shows the initial spikes, while the closer view makes the later training behavior easier to compare.</p>
+</div>
+<div class="image-grid"><figure class="">
+  <a class="image-link" href="images/partb/class_training_loss.png" aria-label="Open full-resolution image: Class-conditioned training losses with and without a scheduler, full vertical range"><img src="images/partb/class_training_loss.png" alt="Class-conditioned training losses with and without a scheduler, full vertical range" width="640" height="480" loading="lazy" decoding="async" /></a>
+  <figcaption>Full range</figcaption>
+</figure><figure class="">
+  <a class="image-link" href="images/partb/class_training_loss_zoomed_in.png" aria-label="Open full-resolution image: The same class-conditioned training losses with vertical range 0 to 0.5"><img src="images/partb/class_training_loss_zoomed_in.png" alt="The same class-conditioned training losses with vertical range 0 to 0.5" width="1500" height="600" loading="lazy" decoding="async" /></a>
+  <figcaption>Loss range 0–0.5</figcaption>
+</figure></div>
+<div class="prose">
+  <p>The run without a scheduler has a smaller initial loss spike and generally lower loss early in training. Later, the curves overlap closely and settle near 0.1. With these learning-rate choices, both runs reach similar training loss; this comparison also changes the initial learning rate, so it does not isolate the scheduler’s effect. I compare their generated digits in Section 2.6.</p>
+</div>
+</section>
+
+<section id="b-2-6" aria-labelledby="b-2-6-title">
+<div class="section-title"><h2 id="b-2-6-title">2.6: Sampling with Classifier-Free Guidance</h2></div>
+<div class="prose">
+  <p>I generate <strong>four instances of each digit</strong> using <strong>300 Euler steps</strong> and <strong>seed 0</strong> at each checkpoint. At every step, I combine predictions with and without the class label using guidance scale <strong>γ = 5</strong>:</p>
+</div>
+<div class="formula" role="math" aria-label="Guided velocity equals unconditional velocity plus gamma times the conditional minus unconditional velocity">v<sub>CFG</sub> = v<sub>uncond</sub> + γ(v<sub>cond</sub> − v<sub>uncond</sub>)</div>
+<p class="figure-note">Columns correspond to digits 0–9.</p>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/class_samples_1.png" aria-label="Open full-resolution image: Class-conditioned samples after epoch 1: four instances of each digit from 0 to 9"><img src="images/partb/class_samples_1.png" alt="Class-conditioned samples after epoch 1: four instances of each digit from 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/class_samples_5.png" aria-label="Open full-resolution image: Class-conditioned samples after epoch 5: four instances of each digit from 0 to 9"><img src="images/partb/class_samples_5.png" alt="Class-conditioned samples after epoch 5: four instances of each digit from 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/class_samples_10.png" aria-label="Open full-resolution image: Class-conditioned samples after epoch 10: four instances of each digit from 0 to 9"><img src="images/partb/class_samples_10.png" alt="Class-conditioned samples after epoch 10: four instances of each digit from 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>After epoch 1, many digits are recognizable, but several have thick, irregular strokes, especially the 8s. By epoch 5, the requested classes are much clearer. Epoch 10 retains that clarity while showing variations in stroke width, slant, and loop shape.</p>
+</div>
+<h3>Removing the learning rate scheduler</h3>
+<div class="prose">
+  <p>For the separate run without a scheduler, I lower Adam’s learning rate from the scheduled run’s initial 0.01 to a constant <strong>0.003</strong>. This reduces the update size from the start while still allowing the model to learn throughout all 10 epochs. I keep the architecture, batch size, class dropout, and sampling settings the same.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/partb/class_samples_no_scheduler.png" aria-label="Open full-resolution image: Class-conditioned samples after ten epochs at constant learning rate 0.003: four instances of digits 0 to 9"><img src="images/partb/class_samples_no_scheduler.png" alt="Class-conditioned samples after ten epochs at constant learning rate 0.003: four instances of digits 0 to 9" width="1657" height="806" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>The fixed-rate model produces clear examples of all ten digits, and its loss closely tracks the scheduled run after the initial drop. The sample quality looks comparable in these grids. This suggests that the smaller constant learning rate is sufficient for this experiment, though these separate runs do not establish identical performance.</p>
+</div>
+</section>
+
+<section id="part-b-takeaway" aria-labelledby="part-b-takeaway-title">
+<div class="section-title"><h2 id="part-b-takeaway-title">Part B: What I Learned</h2></div>
+<div class="prose">
+  <p>Building a flow model from scratch helped me understand how noise can gradually become an image. Starting with a simple denoiser made it easier to understand the network and its training objective before moving on to iterative generation. Implementing the sampling loop helped me connect the equations to the images I was seeing.</p>
+  <p>I also learned how time and class conditioning guide the model, and how choices during training and sampling affect its results. Working through these pieces myself made the pretrained model in Part A easier to understand.</p>
+</div>
+</section>
+    </main>
+    <footer><p>Pranav Subbarayan</p><a href="#top">Back to top ↑</a></footer>
+    <dialog id="image-viewer" aria-label="Figure preview">
+      <div class="viewer-stage"><img id="viewer-image" alt="" role="button" tabindex="0" aria-pressed="false" autofocus /></div>
+      <p id="viewer-caption"></p>
+    </dialog>
+  </body>
+</html>
