@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CS 180 Project 4, Part A by Pranav Subbarayan: manual homographies, inverse warping, image rectification, and feathered photo mosaics." />
+    <title>CS 180 Project 4 — Pranav Subbarayan</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="gallery.js" defer></script>
+  </head>
+  <body>
+    <header><a href="../">← CS 180</a><span>Project 4 · Fall 2026</span></header>
+    <main id="top">
+<section class="intro" aria-labelledby="project-title">
+  <h1 id="project-title">[Auto]Stitching Photo Mosaics</h1>
+  <p class="intro-copy">Part A: Image Warping and Mosaicing. I use manually selected correspondences to recover homographies, rectify planar objects, and combine overlapping photographs into mosaics.</p>
+  <nav class="section-nav" aria-label="Part A sections">
+    <a href="#a-1">A.1: Pictures</a>
+    <a href="#a-2">A.2: Homographies</a>
+    <a href="#a-3">A.3: Warping</a>
+    <a href="#a-4">A.4: Mosaics</a>
+  </nav>
+</section>
+
+<section id="a-1" aria-labelledby="a-1-title">
+<div class="section-title"><h2 id="a-1-title">A.1: Shoot the Pictures</h2></div>
+<div class="prose">
+  <p>I photographed three scenes on campus: Hearst Building, Physics Building, and Evans Terrace. Each set contains a left, center, and right view with overlapping building details. I aimed to rotate the camera from the same position so the images could be related by a projective transformation.</p>
+  <p>Before selecting points, I convert the photographs to JPEG and resize them while preserving their aspect ratios. All nine working images are 1600 × 1200 pixels. The coordinates and homographies below use these resized images.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/a1_hearst_building.png" aria-label="Open full-resolution image: Hearst Building: left, center, and right source photographs"><img src="images/a1_hearst_building.png" alt="Hearst Building: left, center, and right source photographs" width="1800" height="600" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a1_physics_building.png" aria-label="Open full-resolution image: Physics Building: left, center, and right source photographs"><img src="images/a1_physics_building.png" alt="Physics Building: left, center, and right source photographs" width="1800" height="600" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a1_evans_terrace.png" aria-label="Open full-resolution image: Evans Terrace: left, center, and right source photographs"><img src="images/a1_evans_terrace.png" alt="Evans Terrace: left, center, and right source photographs" width="1800" height="600" loading="lazy" decoding="async" /></a>
+</figure>
+</section>
+
+<section id="a-2" aria-labelledby="a-2-title">
+<div class="section-title"><h2 id="a-2-title">A.2: Recover Homographies</h2></div>
+<div class="prose">
+  <p>I manually select 12 matching points for each left-to-center and right-to-center pair. Matching numbers identify the same scene point in both images. The center image is the reference, so I only need two homographies per scene.</p>
+  <p>My <code>computeH</code> function solves for the eight unknown entries of H, fixing h<sub>33</sub> = 1. For a source point (x, y) and its matching center-image point (u, v), the homogeneous relation is [u, v, 1]<sup>T</sup> ∝ H[x, y, 1]<sup>T</sup>. Dividing by the third coordinate gives:</p>
+</div>
+<div class="formula" role="math" aria-label="u equals h11 x plus h12 y plus h13, divided by h31 x plus h32 y plus one. v equals h21 x plus h22 y plus h23, divided by the same denominator.">
+  u = (h<sub>11</sub>x + h<sub>12</sub>y + h<sub>13</sub>) / (h<sub>31</sub>x + h<sub>32</sub>y + 1)<br />
+  v = (h<sub>21</sub>x + h<sub>22</sub>y + h<sub>23</sub>) / (h<sub>31</sub>x + h<sub>32</sub>y + 1)
+</div>
+<div class="prose"><p>Rearranging produces two rows of the linear system Ah = b for each correspondence:</p></div>
+<pre class="equation" role="math" aria-label="The first row of A is x, y, one, zero, zero, zero, minus u x, minus u y. The second row is zero, zero, zero, x, y, one, minus v x, minus v y. The corresponding right hand side is u, v.">[ x  y  1  0  0  0  −ux  −uy ] h = [ u ]
+[ 0  0  0  x  y  1  −vx  −vy ]     [ v ]
+
+h = [h₁₁, h₁₂, h₁₃, h₂₁, h₂₂, h₂₃, h₃₁, h₃₂]ᵀ</pre>
+<div class="prose">
+  <p>At least four point pairs are needed to recover H. Using twelve accurate matches helps reduce sensitivity to individual clicking errors. With 12 correspondences, A has size 24 × 8 and b has 24 entries. I solve this overdetermined system with NumPy’s least-squares solver and place the eight recovered coefficients into H, with h<sub>33</sub> = 1.</p>
+  <p>Below each correspondence pair, I show the recovered matrix mapping the outer view into the center view. Matrix entries are rounded for display. I also report the mean Euclidean distance between the projected source points and their selected matches, in center-image pixels. This measures agreement with the same points used to fit H.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/a2_hearst_building_left_to_center_matches.png" aria-label="Open full-resolution image: Hearst Building: 12 numbered matches from the left image to the center"><img src="images/a2_hearst_building_left_to_center_matches.png" alt="Hearst Building: 12 numbered matches from the left image to the center" width="2160" height="900" loading="lazy" decoding="async" /></a>
+  <figcaption class="homography-caption">
+    <div class="matrix-scroll">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Hearst Building: recovered left-to-center homography">
+        <mrow><mi>H</mi><mo>=</mo><mo>[</mo><mtable columnalign="right" columnspacing="0.8em" rowspacing="0.25em">
+          <mtr><mtd><mn>1.668507</mn></mtd><mtd><mn>−0.090156</mn></mtd><mtd><mn>−782.48704</mn></mtd></mtr>
+          <mtr><mtd><mn>0.326938</mn></mtd><mtd><mn>1.409962</mn></mtd><mtd><mn>−338.410863</mn></mtd></mtr>
+          <mtr><mtd><mn>0.0004288893</mn></mtd><mtd><mn>−0.0000186161</mn></mtd><mtd><mn>1</mn></mtd></mtr>
+        </mtable><mo>]</mo></mrow>
+      </math>
+    </div>
+    <p>Mean reprojection error: 0.92 pixels.</p>
+  </figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a2_hearst_building_right_to_center_matches.png" aria-label="Open full-resolution image: Hearst Building: 12 numbered matches from the right image to the center"><img src="images/a2_hearst_building_right_to_center_matches.png" alt="Hearst Building: 12 numbered matches from the right image to the center" width="2160" height="900" loading="lazy" decoding="async" /></a>
+  <figcaption class="homography-caption">
+    <div class="matrix-scroll">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Hearst Building: recovered right-to-center homography">
+        <mrow><mi>H</mi><mo>=</mo><mo>[</mo><mtable columnalign="right" columnspacing="0.8em" rowspacing="0.25em">
+          <mtr><mtd><mn>0.479663</mn></mtd><mtd><mn>0.057973</mn></mtd><mtd><mn>583.676004</mn></mtd></mtr>
+          <mtr><mtd><mn>−0.25617</mn></mtd><mtd><mn>0.813178</mn></mtd><mtd><mn>130.772161</mn></mtd></mtr>
+          <mtr><mtd><mn>−0.0003205899</mn></mtd><mtd><mn>−0.0000118763</mn></mtd><mtd><mn>1</mn></mtd></mtr>
+        </mtable><mo>]</mo></mrow>
+      </math>
+    </div>
+    <p>Mean reprojection error: 1.65 pixels.</p>
+  </figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a2_physics_building_left_to_center_matches.png" aria-label="Open full-resolution image: Physics Building: 12 numbered matches from the left image to the center"><img src="images/a2_physics_building_left_to_center_matches.png" alt="Physics Building: 12 numbered matches from the left image to the center" width="2160" height="900" loading="lazy" decoding="async" /></a>
+  <figcaption class="homography-caption">
+    <div class="matrix-scroll">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Physics Building: recovered left-to-center homography">
+        <mrow><mi>H</mi><mo>=</mo><mo>[</mo><mtable columnalign="right" columnspacing="0.8em" rowspacing="0.25em">
+          <mtr><mtd><mn>1.403034</mn></mtd><mtd><mn>−0.061995</mn></mtd><mtd><mn>−462.366781</mn></mtd></mtr>
+          <mtr><mtd><mn>0.213426</mn></mtd><mtd><mn>1.241431</mn></mtd><mtd><mn>−212.003185</mn></mtd></mtr>
+          <mtr><mtd><mn>0.0002513785</mn></mtd><mtd><mn>0.0000067031</mn></mtd><mtd><mn>1</mn></mtd></mtr>
+        </mtable><mo>]</mo></mrow>
+      </math>
+    </div>
+    <p>Mean reprojection error: 1.46 pixels.</p>
+  </figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a2_physics_building_right_to_center_matches.png" aria-label="Open full-resolution image: Physics Building: 12 numbered matches from the right image to the center"><img src="images/a2_physics_building_right_to_center_matches.png" alt="Physics Building: 12 numbered matches from the right image to the center" width="2160" height="900" loading="lazy" decoding="async" /></a>
+  <figcaption class="homography-caption">
+    <div class="matrix-scroll">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Physics Building: recovered right-to-center homography">
+        <mrow><mi>H</mi><mo>=</mo><mo>[</mo><mtable columnalign="right" columnspacing="0.8em" rowspacing="0.25em">
+          <mtr><mtd><mn>0.551692</mn></mtd><mtd><mn>0.062899</mn></mtd><mtd><mn>506.856306</mn></mtd></mtr>
+          <mtr><mtd><mn>−0.235773</mn></mtd><mtd><mn>0.828841</mn></mtd><mtd><mn>149.488897</mn></mtd></mtr>
+          <mtr><mtd><mn>−0.0002764199</mn></mtd><mtd><mn>−0.0000073527</mn></mtd><mtd><mn>1</mn></mtd></mtr>
+        </mtable><mo>]</mo></mrow>
+      </math>
+    </div>
+    <p>Mean reprojection error: 0.95 pixels.</p>
+  </figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a2_evans_terrace_left_to_center_matches.png" aria-label="Open full-resolution image: Evans Terrace: 12 numbered matches from the left image to the center"><img src="images/a2_evans_terrace_left_to_center_matches.png" alt="Evans Terrace: 12 numbered matches from the left image to the center" width="2160" height="900" loading="lazy" decoding="async" /></a>
+  <figcaption class="homography-caption">
+    <div class="matrix-scroll">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Evans Terrace: recovered left-to-center homography">
+        <mrow><mi>H</mi><mo>=</mo><mo>[</mo><mtable columnalign="right" columnspacing="0.8em" rowspacing="0.25em">
+          <mtr><mtd><mn>1.729044</mn></mtd><mtd><mn>−0.073699</mn></mtd><mtd><mn>−917.084408</mn></mtd></mtr>
+          <mtr><mtd><mn>0.316671</mn></mtd><mtd><mn>1.4154</mn></mtd><mtd><mn>−328.79429</mn></mtd></mtr>
+          <mtr><mtd><mn>0.000470453</mn></mtd><mtd><mn>−0.0000602493</mn></mtd><mtd><mn>1</mn></mtd></mtr>
+        </mtable><mo>]</mo></mrow>
+      </math>
+    </div>
+    <p>Mean reprojection error: 2.64 pixels.</p>
+  </figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a2_evans_terrace_right_to_center_matches.png" aria-label="Open full-resolution image: Evans Terrace: 12 numbered matches from the right image to the center"><img src="images/a2_evans_terrace_right_to_center_matches.png" alt="Evans Terrace: 12 numbered matches from the right image to the center" width="2160" height="900" loading="lazy" decoding="async" /></a>
+  <figcaption class="homography-caption">
+    <div class="matrix-scroll">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Evans Terrace: recovered right-to-center homography">
+        <mrow><mi>H</mi><mo>=</mo><mo>[</mo><mtable columnalign="right" columnspacing="0.8em" rowspacing="0.25em">
+          <mtr><mtd><mn>0.772892</mn></mtd><mtd><mn>0.005784</mn></mtd><mtd><mn>281.423163</mn></mtd></mtr>
+          <mtr><mtd><mn>−0.093562</mn></mtd><mtd><mn>0.893894</mn></mtd><mtd><mn>78.516047</mn></mtd></mtr>
+          <mtr><mtd><mn>−0.0001419307</mn></mtd><mtd><mn>−0.0000033379</mn></mtd><mtd><mn>1</mn></mtd></mtr>
+        </mtable><mo>]</mo></mrow>
+      </math>
+    </div>
+    <p>Mean reprojection error: 2.24 pixels.</p>
+  </figcaption>
+</figure>
+</section>
+
+<section id="a-3" aria-labelledby="a-3-title">
+<div class="section-title"><h2 id="a-3-title">A.3: Warp the Images</h2></div>
+<div class="prose">
+  <p>I implement <code>warpImageNearestNeighbor</code> and <code>warpImageBilinear</code> using inverse warping. First, I transform the four source-image corners through H and round the minimum coordinates down and the maximum coordinates up to find the output bounds. These bounds can include negative coordinates. For each output pixel, I apply H<sup>−1</sup> and divide by the homogeneous coordinate to find the corresponding source location. Sampling every output location avoids holes inside the warped image.</p>
+  <p>I treat integer coordinates as pixel centers. Nearest neighbor rounds the source coordinates and copies one pixel. Bilinear interpolation uses the four surrounding pixels. Let i = floor(x), j = floor(y), a = x − i, and b = y − j. The interpolated color is:</p>
+</div>
+<div class="formula" role="math" aria-label="The interpolated color is one minus a times one minus b times I at i j, plus a times one minus b times I at i plus one j, plus one minus a times b times I at i j plus one, plus a b times I at i plus one j plus one.">
+  C(x, y) = (1 − a)(1 − b)I(i, j) + a(1 − b)I(i + 1, j)<br />
+  + (1 − a)bI(i, j + 1) + abI(i + 1, j + 1)
+</div>
+<div class="prose">
+  <p>Both interpolation methods are implemented from scratch. Source locations outside the image remain transparent, while valid samples receive alpha = 1. This separates empty canvas pixels from actual black image pixels. At the source boundary, bilinear neighbors are clamped to the last valid row or column.</p>
+  <p>For rectification, I manually select four corners in top-left, top-right, bottom-right, bottom-left order and map them to an axis-aligned rectangle. These four matches define the target geometry for each planar object.</p>
+  <p><strong>Microchips exhibit.</strong> I rectify panel 5 into a 400 × 800 image by mapping the selected corners to (0, 0), (399, 0), (399, 799), and (0, 799), respectively. The 1:2 width-to-height ratio is chosen for display; I did not measure the panel’s physical dimensions. The original image and both rectifications are followed by an enlarged text comparison.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/a3_microchips_exhibit_comparison.png" aria-label="Open full-resolution image: Microchips exhibit panel 5: original with selected corners, nearest neighbor rectification, and bilinear rectification"><img src="images/a3_microchips_exhibit_comparison.png" alt="Microchips exhibit panel 5: original with selected corners, nearest neighbor rectification, and bilinear rectification" width="1920" height="800" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a3_microchips_exhibit_detail.png" aria-label="Open full-resolution image: Enlarged exhibit text: nearest neighbor on the left and bilinear on the right"><img src="images/a3_microchips_exhibit_detail.png" alt="Enlarged exhibit text: nearest neighbor on the left and bilinear on the right" width="1600" height="800" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p><strong>Wheeler marker.</strong> I map the selected inner square to an 800 × 800 square with destination corners (0, 0), (799, 0), (799, 799), and (0, 799), in the same order, assuming the plaque is square. I retain 25 pixels of surrounding warped image on each side, giving an 850 × 850 display so the border remains visible.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/a3_wheeler_marker_comparison.png" aria-label="Open full-resolution image: Wheeler marker: original with selected inner-square corners, nearest neighbor rectification, and bilinear rectification"><img src="images/a3_wheeler_marker_comparison.png" alt="Wheeler marker: original with selected inner-square corners, nearest neighbor rectification, and bilinear rectification" width="1920" height="800" loading="lazy" decoding="async" /></a>
+</figure>
+<figure class="result-figure">
+  <a class="image-link" href="images/a3_wheeler_marker_detail.png" aria-label="Open full-resolution image: Enlarged Wheeler lettering: nearest neighbor on the left and bilinear on the right"><img src="images/a3_wheeler_marker_detail.png" alt="Enlarged Wheeler lettering: nearest neighbor on the left and bilinear on the right" width="1600" height="800" loading="lazy" decoding="async" /></a>
+</figure>
+<div class="prose">
+  <p>Nearest neighbor produces more jagged letter edges and a blockier surface texture. Bilinear interpolation smooths these transitions, but also softens small text. Neither method recovers detail missing from the source photograph.</p>
+  <p>The table reports median runtimes over three calls to each warp function. Timing includes bounds calculation, canvas allocation, inverse mapping, and interpolation, and excludes image loading, saving, and plotting. For rectification, the entire cropped-source warp is timed before extracting the displayed rectangle, so the timed canvases are larger than the final images.</p>
+</div>
+<table class="runtime-table">
+  <thead><tr><th scope="col">Rectification</th><th scope="col">Timed canvas</th><th scope="col">Nearest neighbor</th><th scope="col">Bilinear</th></tr></thead>
+  <tbody>
+    <tr><th scope="row">Microchips exhibit</th><td>434 × 935</td><td>0.041 s</td><td>0.071 s</td></tr>
+    <tr><th scope="row">Wheeler marker</th><td>1048 × 1328</td><td>0.102 s</td><td>0.169 s</td></tr>
+  </tbody>
+</table>
+<div class="prose"><p>Nearest neighbor is faster in both examples because it reads one source pixel per sample. Bilinear requires four samples and their weights, taking about 1.7 times as long here. I use bilinear interpolation for the mosaics to reduce the jagged edges introduced by warping.</p></div>
+</section>
+
+<section id="a-4" aria-labelledby="a-4-title">
+<div class="section-title"><h2 id="a-4-title">A.4: Blend Images into a Mosaic</h2></div>
+<div class="prose">
+  <p>Each mosaic combines the three source photographs shown in <a href="#a-1">A.1</a>. I warp the left and right images into the center image’s coordinate system and use the identity transformation for the center. The shared canvas covers the union of all three transformed image bounds, with an offset to place negative coordinates inside the output array.</p>
+  <p>Directly overwriting pixels creates abrupt seams where the photographs differ in brightness. For feathering, I give each source pixel a weight based on its distance to the nearest image edge. The weights are largest toward the interior and remain slightly positive at the boundary. I warp both the RGB image and its weight map with bilinear interpolation, mask out invalid pixels, and normalize the weighted color sum:</p>
+</div>
+<div class="formula" role="math" aria-label="The mosaic color at p equals the sum over images of the warped weight times warped image color, divided by the sum of the warped weights.">
+  M(p) = [Σ<sub>k</sub> ŵ<sub>k</sub>(p) Ĩ<sub>k</sub>(p)] / [Σ<sub>k</sub> ŵ<sub>k</sub>(p)]
+</div>
+<div class="prose">
+  <p>Here Ĩ<sub>k</sub> and ŵ<sub>k</sub> are the warped color and valid weight from image k. Where only one image contributes, its color is preserved. Where no image contributes, the canvas stays transparent.</p>
+  <p>The Hearst comparison shows the sky seam from direct overwriting becoming a gradual transition with feathering.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link mosaic-image" href="images/a4_hearst_building_overwrite.png" aria-label="Open full-resolution image: Hearst Building, direct overwrite"><img src="images/a4_hearst_building_overwrite.png" alt="Hearst Building: direct overwrite" width="3914" height="2046" loading="lazy" decoding="async" /></a>
+  <figcaption>Direct overwrite</figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link mosaic-image" href="images/a4_hearst_building_mosaic.png" aria-label="Open full-resolution image: Hearst Building, feathered blending"><img src="images/a4_hearst_building_mosaic.png" alt="Hearst Building: feathered blending" width="3914" height="2046" loading="lazy" decoding="async" /></a>
+  <figcaption>Feathered blending</figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link mosaic-image" href="images/a4_physics_building_mosaic.png" aria-label="Open full-resolution image: Physics Building: three photographs warped and feathered into the center view"><img src="images/a4_physics_building_mosaic.png" alt="Physics Building: three photographs warped and feathered into the center view" width="3201" height="1805" loading="lazy" decoding="async" /></a>
+  <figcaption>Physics Building</figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link mosaic-image" href="images/a4_evans_terrace_mosaic.png" aria-label="Open full-resolution image: Evans Terrace: three photographs warped and feathered into the center view"><img src="images/a4_evans_terrace_mosaic.png" alt="Evans Terrace: three photographs warped and feathered into the center view" width="3067" height="1805" loading="lazy" decoding="async" /></a>
+  <figcaption>Evans Terrace</figcaption>
+</figure>
+<div class="prose">
+  <p>The building façades align across the views, and feathering reduces abrupt brightness changes. Some fine edges and nearby objects, especially the plants at Evans Terrace, still show slight doubling. A single homography cannot fully align different depths if the camera center shifts, and blending cannot correct those geometric differences. The irregular outer boundaries come from the projective warps; I retain the full canvas rather than crop away image content.</p>
+  <p>This project showed me that accurate correspondences and the capture geometry matter before blending. Inverse warping gives a consistent way to sample the output, while feathering improves transitions between images that are already approximately aligned.</p>
+</div>
+</section>
+    </main>
+    <footer><p>Pranav Subbarayan</p><a href="#top">Back to top ↑</a></footer>
+    <dialog id="image-viewer" aria-label="Figure preview">
+      <div class="viewer-stage"><img id="viewer-image" alt="" role="button" tabindex="0" aria-pressed="false" autofocus /></div>
+      <p id="viewer-caption"></p>
+    </dialog>
+  </body>
+</html>

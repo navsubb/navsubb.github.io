@@ -10,6 +10,7 @@ A GitHub Pages portfolio for CS 180 coursework.
 - `/cs180/proj1/` — Project 1: Colorizing the Prokudin-Gorskii Collection
 - `/cs180/proj2/` — Project 2: Fun with Filters and Frequencies
 - `/cs180/proj3/` — Project 3: Fun with Flow Models (Parts A and B)
+- `/cs180/proj4/` — Project 4: [Auto]Stitching Photo Mosaics (Part A)
 
 ## Preview locally
 
@@ -27,6 +28,7 @@ Then open:
 - <http://localhost:8000/cs180/proj1/>
 - <http://localhost:8000/cs180/proj2/>
 - <http://localhost:8000/cs180/proj3/>
+- <http://localhost:8000/cs180/proj4/>
 
 ## Export the required PDF
 
