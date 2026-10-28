@@ -19,6 +19,7 @@
     <a href="#a-2">A.2: Homographies</a>
     <a href="#a-3">A.3: Warping</a>
     <a href="#a-4">A.4: Mosaics</a>
+    <a href="#extra-sutardja">Fun extra</a>
   </nav>
 </section>
 
@@ -227,6 +228,21 @@ h = [h₁₁, h₁₂, h₁₃, h₂₁, h₂₂, h₂₃, h₃₁, h₃₂]ᵀ<
   <p>The buildings line up well, and feathering makes the brightness changes less noticeable. Some details, especially the plants at Evans Terrace, still look slightly doubled. Small shifts in the camera’s position can cause objects at different depths to line up differently, which a single homography cannot fully correct. Blending softens these artifacts but does not fix the alignment. I kept the uneven edges created by warping so that none of the image content would be cropped out.</p>
   <p>This project showed me that accurate correspondences and the capture geometry matter before blending. Inverse warping gives a consistent way to sample the output, while feathering improves transitions between images that are already approximately aligned.</p>
 </div>
+</section>
+<section id="extra-sutardja" aria-labelledby="extra-sutardja-title">
+<div class="section-title"><h2 id="extra-sutardja-title">Fun Extra: Eight Views of Sutardja Terrace</h2></div>
+<div class="prose">
+  <p>I took eight overlapping photographs on Sutardja Terrace for a larger mosaic. Instead of mapping just a left and right view directly to the center, this mosaic uses correspondences across all seven neighboring pairs. I compose their homographies into image 4’s coordinate system. Nine additional rail-post matches in two pairs help improve the foreground alignment.</p>
+  <p>I use the same bilinear inverse warping and feather blending as above, cropping redundant overlap from the working copies to reduce ghosting. All eight photographs still contribute. Some foreground alignment errors and stretching toward the outer edges remain.</p>
+</div>
+<figure class="result-figure">
+  <a class="image-link" href="images/bonus_sutardja_terrace_sources.png" aria-label="Open full-resolution image: Eight Sutardja Terrace source photographs in capture order"><img src="images/bonus_sutardja_terrace_sources.png" alt="Eight Sutardja Terrace source photographs, numbered 1 through 8 in two rows of four" width="2400" height="1050" loading="lazy" decoding="async" /></a>
+  <figcaption>Eight source photographs, in capture order.</figcaption>
+</figure>
+<figure class="result-figure">
+  <a class="image-link mosaic-image" href="images/bonus_sutardja_terrace_mosaic.png" aria-label="Open full-resolution image: Eight-image Sutardja Terrace mosaic"><img src="images/bonus_sutardja_terrace_mosaic.png" alt="Eight overlapping Sutardja Terrace photographs combined into a wide planar mosaic overlooking the terrace and Campanile" width="6803" height="3030" loading="lazy" decoding="async" /></a>
+  <figcaption>Eight-image mosaic using homographies, bilinear warping, and feather blending.</figcaption>
+</figure>
 </section>
     </main>
     <footer><p>Pranav Subbarayan</p><a href="#top">Back to top ↑</a></footer>
