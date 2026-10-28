@@ -181,7 +181,7 @@ h = [h₁₁, h₁₂, h₁₃, h₂₁, h₂₂, h₂₃, h₃₁, h₃₂]ᵀ<
   <a class="image-link" href="images/a3_wheeler_marker_detail.png" aria-label="Open full-resolution image: Enlarged Wheeler lettering: nearest neighbor on the left and bilinear on the right"><img src="images/a3_wheeler_marker_detail.png" alt="Enlarged Wheeler lettering: nearest neighbor on the left and bilinear on the right" width="1584" height="361" loading="lazy" decoding="async" /></a>
 </figure>
 <div class="prose">
-  <p>Nearest neighbor produces more jagged letter edges and a blockier surface texture. Bilinear interpolation smooths these transitions, but also softens small text. Neither method recovers detail missing from the source photograph.</p>
+  <p>Nearest neighbor produces more jagged letter edges and a blockier surface texture. Bilinear interpolation smooths these transitions, but also softens the text. Neither method recovers detail missing from the source photograph.</p>
   <p>The table reports median runtimes over three calls to each warp function. Timing includes bounds calculation, canvas allocation, inverse mapping, and interpolation, and excludes image loading, saving, and plotting. For rectification, the entire cropped-source warp is timed before extracting the displayed rectangle, so the timed canvases are larger than the final images.</p>
 </div>
 <table class="runtime-table">
