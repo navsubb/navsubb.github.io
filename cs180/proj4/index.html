@@ -26,7 +26,7 @@
 <div class="section-title"><h2 id="a-1-title">A.1: Shoot the Pictures</h2></div>
 <div class="prose">
   <p>I photographed three scenes on campus: Hearst Building, Physics Building, and Evans Terrace. Each set contains a left, center, and right view with overlapping building details. I aimed to rotate the camera from the same position so the images could be related by a projective transformation.</p>
-  <p>Before selecting points, I convert the photographs to JPEG and resize them while preserving their aspect ratios. All nine working images are 1600 × 1200 pixels. The coordinates and homographies below use these resized images.</p>
+  <p>I use resized JPEG copies of the original HEIC photos to select points. The resizing preserves their aspect ratios, and all nine working images are 1600 × 1200 pixels. The coordinates and homographies below use these resized images.</p>
 </div>
 <figure class="result-figure">
   <a class="image-link" href="images/a1_hearst_building.png" aria-label="Open full-resolution image: Hearst Building: left, center, and right source photographs"><img src="images/a1_hearst_building.png" alt="Hearst Building: left, center, and right source photographs" width="1800" height="600" loading="lazy" decoding="async" /></a>
@@ -224,7 +224,7 @@ h = [h₁₁, h₁₂, h₁₃, h₂₁, h₂₂, h₂₃, h₃₁, h₃₂]ᵀ<
   <figcaption>Evans Terrace</figcaption>
 </figure>
 <div class="prose">
-  <p>The building façades align across the views, and feathering reduces abrupt brightness changes. Some fine edges and nearby objects, especially the plants at Evans Terrace, still show slight doubling. A single homography cannot fully align different depths if the camera center shifts, and blending cannot correct those geometric differences. The irregular outer boundaries come from the projective warps; I retain the full canvas rather than crop away image content.</p>
+  <p>The buildings line up well, and feathering makes the brightness changes less noticeable. Some details, especially the plants at Evans Terrace, still look slightly doubled. Small shifts in the camera’s position can cause objects at different depths to line up differently, which a single homography cannot fully correct. Blending softens these artifacts but does not fix the alignment. I kept the uneven edges created by warping so that none of the image content would be cropped out.</p>
   <p>This project showed me that accurate correspondences and the capture geometry matter before blending. Inverse warping gives a consistent way to sample the output, while feathering improves transitions between images that are already approximately aligned.</p>
 </div>
 </section>
