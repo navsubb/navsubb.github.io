@@ -19,7 +19,6 @@
     <a href="#a-2">A.2: Homographies</a>
     <a href="#a-3">A.3: Warping</a>
     <a href="#a-4">A.4: Mosaics</a>
-    <a href="#extra-sutardja">Fun extra</a>
   </nav>
 </section>
 
@@ -206,23 +205,23 @@ h = [h₁₁, h₁₂, h₁₃, h₂₁, h₂₂, h₂₃, h₃₁, h₃₂]ᵀ<
 </div>
 <div class="prose">
   <p>Here Ĩ<sub>k</sub> and ŵ<sub>k</sub> are the warped color and valid weight from image k. Where only one image contributes, its color is preserved. Where no image contributes, the canvas stays transparent.</p>
-  <p>The Hearst comparison shows the sky seam from direct overwriting becoming a gradual transition with feathering.</p>
+  <p>For Hearst Building, the first image uses direct overwriting and the second uses feathering, with the same alignment in both. Notice the sharp brightness boundaries in the sky before blending and the smoother transitions afterward. The Physics Building and Evans Terrace results below use the same feathering method.</p>
 </div>
 <figure class="result-figure">
   <a class="image-link mosaic-image" href="images/a4_hearst_building_overwrite.png" aria-label="Open full-resolution image: Hearst Building, direct overwrite"><img src="images/a4_hearst_building_overwrite.png" alt="Hearst Building: direct overwrite" width="3914" height="2046" loading="lazy" decoding="async" /></a>
-  <figcaption>Direct overwrite</figcaption>
+  <figcaption>Hearst Building: before blending (direct overwrite)</figcaption>
 </figure>
 <figure class="result-figure">
   <a class="image-link mosaic-image" href="images/a4_hearst_building_mosaic.png" aria-label="Open full-resolution image: Hearst Building, feathered blending"><img src="images/a4_hearst_building_mosaic.png" alt="Hearst Building: feathered blending" width="3914" height="2046" loading="lazy" decoding="async" /></a>
-  <figcaption>Feathered blending</figcaption>
+  <figcaption>Hearst Building: after feathering</figcaption>
 </figure>
 <figure class="result-figure">
   <a class="image-link mosaic-image" href="images/a4_physics_building_mosaic.png" aria-label="Open full-resolution image: Physics Building: three photographs warped and feathered into the center view"><img src="images/a4_physics_building_mosaic.png" alt="Physics Building: three photographs warped and feathered into the center view" width="3201" height="1805" loading="lazy" decoding="async" /></a>
-  <figcaption>Physics Building</figcaption>
+  <figcaption>Physics Building: feathered mosaic</figcaption>
 </figure>
 <figure class="result-figure">
   <a class="image-link mosaic-image" href="images/a4_evans_terrace_mosaic.png" aria-label="Open full-resolution image: Evans Terrace: three photographs warped and feathered into the center view"><img src="images/a4_evans_terrace_mosaic.png" alt="Evans Terrace: three photographs warped and feathered into the center view" width="3067" height="1805" loading="lazy" decoding="async" /></a>
-  <figcaption>Evans Terrace</figcaption>
+  <figcaption>Evans Terrace: feathered mosaic</figcaption>
 </figure>
 <div class="prose">
   <p>The buildings line up well, and feathering makes the brightness changes less noticeable. Some details, especially the plants at Evans Terrace, still look slightly doubled. Small shifts in the camera’s position can cause objects at different depths to line up differently, which a single homography cannot fully correct. Blending softens these artifacts but does not fix the alignment. I kept the uneven edges created by warping so that none of the image content would be cropped out.</p>
