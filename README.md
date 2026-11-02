@@ -1,6 +1,6 @@
-# CS 180 project portfolio
+# CS 180 Project Portfolio
 
-A GitHub Pages portfolio for CS 180 coursework.
+A GitHub Pages portfolio for my CS 180 projects!
 
 ## Structure
 
