@@ -4,7 +4,6 @@ A GitHub Pages portfolio for CS 180 coursework.
 
 ## Structure
 
-- `/` — Original CS 180 course portfolio (kept during migration)
 - `/cs180/` — CS 180 course portfolio
 - `/cs180/proj0/` — Project 0: Becoming Friends with Your Camera
 - `/cs180/proj1/` — Project 1: Colorizing the Prokudin-Gorskii Collection
